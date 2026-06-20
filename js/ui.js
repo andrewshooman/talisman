@@ -203,41 +203,66 @@
     next();
   };
 
+  // Step 1: show the scene + prompt + action choices.
   UI.renderMoment = function (moment, record, done) {
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
       <div class="pill gold">KEY MOMENT</div>
-      <div class="card"><p style="font-size:18px;font-weight:700">${moment.prompt}</p></div>
+      <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
+      <div class="card"><p style="font-size:18px;font-weight:700;margin:0">${moment.prompt}</p></div>
+      <div class="muted center" style="font-size:12px">Pick your move — then nail the skill challenge.</div>
       <div class="col" id="choices"></div>
     `;
     const choices = wrap.querySelector("#choices");
     moment.choices.forEach(choice => {
-      const b = el(`<button class="btn">${choice.label} <span class="muted" style="font-weight:400;margin-left:6px">(${lbl(choice.stat)})</span></button>`);
-      b.onclick = () => {
-        const res = T.Moments.resolve(choice);
-        // apply deltas
-        const p = T.game.player;
-        p.form = T.clamp(p.form + res.deltas.form, -10, 10);
-        p.morale = T.clamp(p.morale + res.deltas.morale, 0, 100);
-        record.goals += res.deltas.goals;
-        record.rating = +T.clamp(record.rating + res.deltas.rating, 4, 9.9).toFixed(2);
-        record.keyMoments.push({ id: moment.id, success: res.success });
-        T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
-        UI.renderMomentResult(res, done);
-      };
+      const b = el(`<button class="btn">${choice.label}
+        <span class="muted" style="font-weight:400;margin-left:6px">(${lbl(choice.stat)})</span></button>`);
+      b.onclick = () => UI.playMomentGame(moment, choice, record, done);
       choices.appendChild(b);
     });
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
+  // Step 2: play the skill-game for the chosen action, then resolve.
+  UI.playMomentGame = function (moment, choice, record, done) {
+    const p = T.game.player;
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div class="pill gold">${choice.label.toUpperCase()}</div>
+      <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
+      <div id="mghost"></div>
+    `;
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+
+    const host = wrap.querySelector("#mghost");
+    const game = choice.game || { type: "timingBar" };
+    T.Minigames.run(host, {
+      type: game.type,
+      action: game.action,
+      statVal: p.stats[choice.stat] != null ? p.stats[choice.stat] : 50,
+    }, (gameResult) => {
+      const res = T.Moments.resolve(choice, gameResult.skill);
+      res.gameText = gameResult.text;
+      // apply deltas
+      p.form = T.clamp(p.form + res.deltas.form, -10, 10);
+      p.morale = T.clamp(p.morale + res.deltas.morale, 0, 100);
+      record.goals += res.deltas.goals;
+      record.rating = +T.clamp(record.rating + res.deltas.rating, 4, 9.9).toFixed(2);
+      record.keyMoments.push({ id: moment.id, success: res.success });
+      T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
+      setTimeout(() => UI.renderMomentResult(res, done), 350);
+    });
+  };
+
   UI.renderMomentResult = function (res, done) {
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div style="height:8vh"></div>
+      <div style="height:6vh"></div>
       <div class="brand pop-in" style="font-size:28px;color:${res.success ? 'var(--good)' : 'var(--bad)'}">
         ${res.success ? "⚽ SUCCESS" : "✖ MISS"}
       </div>
-      <div class="card center"><p style="font-size:18px">${res.text}</p></div>
+      ${res.gameText ? `<div class="center muted">${res.gameText}</div>` : ``}
+      <div class="card center"><p style="font-size:18px;margin:0">${res.text}</p></div>
       <button class="btn primary" id="cont">Continue</button>
     `;
     wrap.querySelector("#cont").onclick = done;

@@ -24,7 +24,8 @@ Load order is fixed in `index.html`:
 data.js  -> constants only (no logic)
 state.js -> T.game, newGame(), save/load, RNG, overall(), hasPerk()
 engine.js  -> T.Engine: simSeason(), teamQuality(), leagueFinish()
-moments.js -> T.Moments: POOL_FWD, resolve(), pickSeason()
+minigames.js -> T.Minigames: run(host,opts,onDone), scene(kind) — skill games
+moments.js -> T.Moments: POOL_FWD, resolve(choice, skill), pickSeason()
 progression.js -> T.Prog: rollForm, applyAgeCurve, rollInjury, awardXp, advanceSeason
 legacy.js  -> T.Legacy: compute(), tierFor()
 ui.js      -> T.UI: screen router + screens + confetti
@@ -77,6 +78,19 @@ T.game = {
 - **Stubbed / not built yet:** spin/event screen, train screen (points accrue but
   can't be spent), perk-pick UI, transfer offers, awards/call-ups, catastrophic-injury
   is wired but rare, retirement trophy cabinet/defining-moments are minimal.
+
+## Key moments + mini-games (how it fits together)
+
+- A key moment shows an SVG `scene` + prompt + action choices (ui.js `renderMoment`).
+- Picking a choice launches its skill-game (ui.js `playMomentGame` -> `T.Minigames.run`).
+  Choice descriptor: `game: { type, action? }`; the chosen stat sizes game difficulty.
+- The game calls back with `{ skill: 0..1, text }`. `Moments.resolve(choice, skill)`
+  blends skill into the roll: `roll = stat + form + (skill-0.5)*44 + noise [+perks]`.
+- Mini-games use `requestAnimationFrame`. NOTE: browsers PAUSE rAF on hidden tabs and
+  CLAMP setTimeout to ~1s — so automated headless preview shows a frozen marker. This is
+  expected; it animates fine on a visible page. Don't "fix" the frozen-marker symptom.
+- To add a game type: add to `MG._games`, render into `host`, call `onDone({skill,text})`,
+  and add matching CSS in styles.css. Always honor the rAF cleanup (`stopLoop`).
 
 ## Tuning log (append each pass — most recent first)
 

@@ -21,6 +21,9 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] `ui.js` full loop: title -> create -> hub -> moments -> results -> retirement
 - [x] Confetti juice on success/trophy/retire
 - [x] GitHub repo created + pushed
+- [x] **Interactive key moments**: SVG stadium scenes + skill mini-games
+      (`minigames.js`: timingBar / aimTarget / reactionTap). Skill (0..1)
+      blends into the stat roll. Moment pool grown to 6 FWD scenarios.
 
 ---
 
@@ -39,8 +42,10 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
 - [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
       Increment `totals.awards`; surface in results + legacy.
-- [ ] Grow the **key-moment pool** to 8-10 FWD scenarios; context-aware selection
-      (finals only when in a cup run / late season).
+- [ ] Grow the **key-moment pool** to 8-10 FWD scenarios (now at 6); context-aware
+      selection (finals only when in a cup run / late season).
+- [ ] More **mini-game types** (1v1 dribble dodge, header timing arc) + per-opponent
+      difficulty scaling. See `minigames.js`.
 - [ ] Wire **perks into math** (Leader/Glass Cannon/Engine/Clutch/etc.).
 
 ---
