@@ -1,0 +1,124 @@
+/* ============================================================
+   TALISMAN — progression.js
+   XP, leveling/perk picks, age curve, injuries, transfers, and the
+   per-season "advance" that folds results into totals & history.
+
+   Current status: BASIC working version. Age curve + injuries + totals
+   work; transfers and perk-picks are stubbed.
+
+   TODO (future sessions):
+     - Transfer offers driven by performance & club tier (bigger clubs
+       court strong seasons; loans/drops on poor ones).
+     - Perk pick UI on level-up (currently auto-skipped).
+     - Awards (Player of the Season, Ballon-style), national call-ups.
+     - Catastrophic injury -> early career end ("the death").
+   ============================================================ */
+(function () {
+  const T = window.TALISMAN;
+  const Prog = (T.Prog = {});
+
+  // Roll this season's volatile form (-10..+10), nudged by morale.
+  Prog.rollForm = function () {
+    const p = T.game.player;
+    const moraleBias = (p.morale - 50) / 10; // -5..+5
+    p.form = Math.round(T.clamp(T.rand(-10, 10) + moraleBias * 0.5, -10, 10));
+    return p.form;
+  };
+
+  // Apply the age curve to stats: growth toward prime, decline after.
+  Prog.applyAgeCurve = function () {
+    const p = T.game.player;
+    const prime = T.POSITIONS[p.position].prime;
+    const keys = T.POSITIONS[p.position].stats;
+    let drift;
+    if (p.age < prime) {
+      drift = T.hasPerk("wonderkid") && p.age < 23 ? 3 : 2; // growth
+    } else if (p.age <= prime + 1) {
+      drift = 0; // plateau
+    } else {
+      drift = -(1 + Math.floor((p.age - prime) / 2)); // accelerating decline
+    }
+    keys.forEach((k) => {
+      const jitter = T.randInt(-1, 1);
+      p.stats[k] = T.clamp(p.stats[k] + drift + jitter, 10, 99);
+    });
+  };
+
+  // Injury roll. Returns an injury object or null.
+  Prog.rollInjury = function () {
+    const p = T.game.player;
+    let chance = T.TUNING.BASE_INJURY_CHANCE;
+    if (T.hasPerk("glassCannon")) chance += 0.06;
+    if (T.hasPerk("injuryProne")) chance += 0.08;
+    if (T.hasPerk("ironMan")) chance -= 0.05;
+    if (T.hasPerk("engine")) chance -= 0.02;
+    chance += (p.age > 30 ? (p.age - 30) * 0.01 : 0);
+
+    if (T.rng() < chance) {
+      const weeks = T.randInt(2, 16);
+      p.fitness = T.clamp(p.fitness - weeks * 2, 30, 100);
+      const inj = { season: T.game.season, weeks };
+      p.injuries.push(inj);
+      return inj;
+    }
+    // recover a little if uninjured
+    p.fitness = T.clamp(p.fitness + 5, 0, 100);
+    return null;
+  };
+
+  // Rare catastrophic injury -> career ends.
+  Prog.rollCareerEndInjury = function () {
+    const p = T.game.player;
+    let chance = T.TUNING.CAREER_END_INJURY_CHANCE;
+    if (T.hasPerk("glassCannon")) chance *= 2;
+    if (T.hasPerk("ironMan")) chance *= 0.5;
+    chance += (p.age > 32 ? (p.age - 32) * 0.005 : 0);
+    return T.rng() < chance;
+  };
+
+  // Award XP and (TODO) trigger perk pick on level-up.
+  Prog.awardXp = function (record) {
+    const p = T.game.player;
+    const gained = 20 + record.goals * 3 + record.assists * 2 +
+      record.trophies.length * 25 + Math.round((record.rating - 6) * 20);
+    p.xp += Math.max(gained, 5);
+    while (p.xp >= T.TUNING.XP_PER_LEVEL) {
+      p.xp -= T.TUNING.XP_PER_LEVEL;
+      p.level += 1;
+      p.trainingPoints += 4;
+      // TODO: trigger perk-pick UI here.
+    }
+    return gained;
+  };
+
+  // Fold a finished season record into history + totals, advance age.
+  Prog.advanceSeason = function (record) {
+    const g = T.game;
+    const t = g.totals;
+    t.apps += record.apps;
+    t.goals += record.goals;
+    t.assists += record.assists;
+    t.cleanSheets += record.cleanSheets || 0;
+    t.trophies += record.trophies.length;
+    if (record.rating > t.peakRating) t.peakRating = record.rating;
+
+    g.history.push(record);
+    Prog.awardXp(record);
+
+    // morale settles toward 50 a touch each year
+    g.player.morale = Math.round(T.clamp(g.player.morale * 0.9 + 5, 0, 100));
+
+    // age up, then apply growth/decline for the new age
+    g.player.age += 1;
+    g.season += 1;
+    Prog.applyAgeCurve();
+
+    // decline-based natural retirement check (UI offers retire too)
+    if (g.player.age >= 38 && T.overall() < 60) {
+      g.careerOver = true;
+    }
+  };
+
+  // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.
+  Prog.generateOffers = function () { return []; };
+})();

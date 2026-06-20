@@ -1,0 +1,183 @@
+/* ============================================================
+   TALISMAN — styles
+   Dark sporty palette. Gold/amber "legacy" accent (NOT green).
+   Mobile-first. Big tap targets. One-screen flows.
+   ============================================================ */
+
+:root {
+  /* Core palette */
+  --bg:        #0a0a0f;   /* near-black background */
+  --bg-2:      #12121a;   /* raised surface */
+  --bg-3:      #1b1b27;   /* card / input */
+  --line:      #2a2a3a;   /* hairline borders */
+  --text:      #e9e9f2;   /* primary text */
+  --muted:     #8a8aa0;   /* secondary text */
+
+  /* Accents */
+  --gold:      #f5c451;   /* legacy / awards / primary action */
+  --gold-dim:  #b8902f;
+  --pop:       #5ad1ff;   /* secondary highlight (cool) */
+  --good:      #4ade80;   /* success */
+  --bad:       #f87171;   /* danger / delete */
+
+  /* Sizing */
+  --tap:       52px;      /* minimum tap target */
+  --radius:    14px;
+  --maxw:      560px;     /* phone-width column, centered on desktop */
+  --pad:       16px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  overscroll-behavior: none;
+}
+
+body {
+  /* safe-area padding for notched phones */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.app {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: var(--pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--pad);
+}
+
+/* Confetti / juice overlay sits above everything, ignores input */
+.fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ---------- Typography ---------- */
+h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.01em; }
+.brand {
+  font-size: 40px;
+  letter-spacing: 0.22em;
+  text-align: center;
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(245, 196, 81, 0.25);
+}
+.tagline { text-align: center; color: var(--muted); margin-top: -8px; }
+.muted { color: var(--muted); }
+.gold  { color: var(--gold); }
+
+/* ---------- Surfaces ---------- */
+.card {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--pad);
+}
+.card.tight { padding: 12px; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+  width: 100%;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .06s ease, filter .15s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn.primary {
+  background: linear-gradient(180deg, var(--gold), var(--gold-dim));
+  color: #1a1408;
+  border: none;
+}
+.btn.ghost { background: transparent; }
+.btn.danger { border-color: var(--bad); color: var(--bad); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.btn-row { display: flex; gap: 10px; }
+.btn-row .btn { width: auto; flex: 1; }
+
+/* ---------- Forms ---------- */
+label { display: block; font-size: 13px; color: var(--muted); margin: 0 0 6px 2px; }
+input[type="text"], select {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 14px;
+  background: var(--bg-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 16px;
+}
+.field { margin-bottom: 14px; }
+
+/* segmented control (position / tier pickers) */
+.seg { display: flex; gap: 8px; flex-wrap: wrap; }
+.seg .opt {
+  flex: 1;
+  min-width: 64px;
+  min-height: var(--tap);
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-3);
+  font-weight: 700;
+  cursor: pointer;
+}
+.seg .opt.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+/* ---------- Stat bars ---------- */
+.stat { margin-bottom: 10px; }
+.stat .top { display: flex; justify-content: space-between; font-size: 13px; }
+.stat .top .val { color: var(--gold); font-weight: 800; }
+.bar { height: 8px; background: var(--bg-3); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+
+/* ---------- Pills / chips ---------- */
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  background: var(--bg-3); border: 1px solid var(--line);
+  font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.pill.gold { color: var(--gold); border-color: var(--gold-dim); }
+
+/* ---------- Layout helpers ---------- */
+.row { display: flex; gap: 10px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.between { justify-content: space-between; }
+.center { text-align: center; }
+.grow { flex: 1; }
+.spacer { flex: 1; }
+
+/* fade-in for screen swaps */
+.screen { animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* pop animation for big wins */
+.pop-in { animation: pop .4s cubic-bezier(.2,1.4,.4,1); }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }

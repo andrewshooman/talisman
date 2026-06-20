@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>TALISMAN — Football Career RPG</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- Single-page app: screens are swapped inside #app by js/ui.js -->
+  <div id="app" class="app"></div>
+
+  <!-- Confetti / juice overlay (drawn by ui.js on trophy/award moments) -->
+  <canvas id="fx" class="fx"></canvas>
+
+  <!--
+    Load order matters (classic scripts, no build step, opens from file://).
+    Namespace: everything hangs off window.TALISMAN (alias T).
+  -->
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/moments.js"></script>
+  <script src="js/progression.js"></script>
+  <script src="js/legacy.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
