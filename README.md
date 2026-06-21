@@ -43,8 +43,9 @@ css/styles.css      # dark theme, gold accent, mobile-first components
 js/
   data.js           # constants: positions, stats, club tiers, perks, flavor
   state.js          # game state, new game, save/load, RNG, helpers
-  engine.js         # season-sim engine (stats -> results)  ← the heart
-  visuals.js        # procedural SVG art (cards, crests, kits, radar, rings)
+  engine.js         # season engine: builds league, sims every match, key moments
+  league.js         # 20-club league: schedule, match sim, standings table
+  visuals.js        # procedural SVG art (cards, crests, kits, radar, table, charts)
   minigames.js      # key-moment skill games + SVG stadium scenes
   moments.js        # key-moment scenarios + dice-roll resolver
   progression.js    # XP, age curve, injuries, season advance

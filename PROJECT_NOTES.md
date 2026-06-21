@@ -134,6 +134,37 @@ T.game = {
   deltas are multiplied by `stakesMult` (final 1.7 > derby 1.35 > league ~1.2), shown as
   effect chips on the result screen with the choice's impact line.
 
+## League, game-by-game season & competition (v0.4)
+
+- **league.js** (`T.League`): builds 20 named clubs (index 0 = player), a double
+  round-robin `schedule(20)` = 38 matchdays, `matchGoals()` (Poisson from strength +
+  home edge), and `computeTable()`. Club strength is anchored to tier (`base +
+  (overall-60)*0.2`) so tier really sets how strong your side is.
+- **engine.js** new flow (replaces simSeason):
+  - `runSeason()` builds the league, sims EVERY match, marks spread-out key rounds,
+    returns a transient `season` ({teams, matches, pmeta, keyRounds}) stashed on
+    `game._season`. Player per-match goals come from `projectSeason().goals / playedGames`
+    so season totals land near the Train-screen projection.
+  - `applyMoment(season, rd, effect)` adds a goal/assist to that match (changes the
+    scoreline + table) on a successful key moment.
+  - `finalizeSeason(season)` → the season record, now incl. `matches` (game-by-game)
+    and `table` (final standings); `matchRatings` are now real per-match ratings.
+- **moments.js**: 8 football-true FWD scenarios, each tied to its real fixture via
+  `moment._match` (set in ui.playSeason) and carrying `effect: goal|assist|none`.
+  FIXED the long-standing bug where several choices rolled vs `composure` (not an FWD
+  stat) and silently defaulted to 50 — all choices now use the five FWD stats.
+- **minigames.js**: added `dribbleDodge` (lane weaving) and `oneOnOne` (beat the
+  onrushing keeper); 5 types total. Same `onDone({skill,text})` contract.
+- **visuals.js**: `leagueTable(rows)`, `matchList(matches)`, and `matchHeader` now
+  shows the real opponent crest + matchday + minute + live score.
+- **state.js compete features**: `poisson()`, Hall of Fame (`loadHOF/saveHOF/addToHOF`,
+  key `talisman.hof.v1`), `dailySeed()/todayKey()`, and share `encodeCareer/decodeCareer/
+  shareText`. Retirement auto-saves an entry once (`game._hofSaved`).
+- **UI**: new screens `halloffame` and `glossary`; title adds Daily Challenge / Hall of
+  Fame / How to Play; results show table (compact↔full) + game-by-game (6↔all).
+- **Cache-busting**: index.html asset URLs carry `?v=<VERSION>`. BUMP this when you
+  change CSS/JS or the preview/deploy may serve stale files (we hit this in testing).
+
 ## Tuning log (append each pass — most recent first)
 
 - _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`

@@ -267,10 +267,44 @@
          <div class="mh-names"><span>${myClubName}</span><span>${ctx.opponent}</span></div>`
       : `<div class="mh-fixture"><div class="mh-side">${V.crest(myClubName, 30)}</div>
            <div class="mh-vs">📣</div></div>`;
+    const score = (ctx.gh != null)
+      ? `<div class="mh-score">${ctx.round ? "Matchday " + ctx.round + " · " : ""}${ctx.minute ? ctx.minute + "' · " : ""}${ctx.home ? ctx.gh + "–" + ctx.ga : ctx.ga + "–" + ctx.gh}</div>`
+      : ``;
     return `<div class="match-header">
-      <span class="pill ${toneClass}">${ctx.compLabel}</span>
+      <span class="pill ${toneClass}">${ctx.compLabel}${ctx.home != null ? (ctx.home ? " · Home" : " · Away") : ""}</span>
       ${fixture}
+      ${score}
       <div class="mh-stakes">${ctx.stakes}</div>
     </div>`;
+  };
+
+  // ---- League standings table ----------------------------------------
+  // rows: [{ pos, name, P, W, D, L, GD, Pts, isPlayer }]
+  V.leagueTable = function (rows, limit) {
+    const show = limit ? rows.slice(0, limit) : rows;
+    const body = show.map(r => `
+      <tr class="${r.isPlayer ? "me" : ""}">
+        <td class="pos">${r.pos}</td>
+        <td>${r.name}</td>
+        <td>${r.P}</td><td>${r.W}</td><td>${r.D}</td><td>${r.L}</td>
+        <td>${r.GD > 0 ? "+" + r.GD : r.GD}</td><td><b>${r.Pts}</b></td>
+      </tr>`).join("");
+    return `<table class="ltable">
+      <thead><tr><th>#</th><th>Club</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+  };
+
+  // ---- Game-by-game match list ---------------------------------------
+  // matches: [{ rd, opp, home, my, op, res, pg, pa, rating, missed, key }]
+  V.matchList = function (matches) {
+    return `<div class="matchlist">` + matches.map(m => `
+      <div class="match-row ${m.missed ? "dnp" : ""} ${m.key ? "key" : ""}">
+        <span class="md">R${m.rd}</span>
+        <span>${m.home ? "vs " : "@ "}${m.opp}${m.key ? " ⭐" : ""}</span>
+        <span class="score">${m.my}–${m.op}</span>
+        <span class="ga">${m.missed ? "DNP" : ((m.pg ? m.pg + "G " : "") + (m.pa ? m.pa + "A" : "") || "·") }
+          <span class="res-badge res-${m.res}">${m.res}</span></span>
+      </div>`).join("") + `</div>`;
   };
 })();

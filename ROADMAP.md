@@ -28,6 +28,13 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
       jersey kits, nation flags, radar stat chart, rating/fitness rings,
       league-position ladder, season form sparkline, trophy cabinet. Every
       screen now reads like a game rather than a text menu.
+- [x] **Real simulated league** (`league.js`): 20 named clubs, double round-robin
+      (38 matchdays), game-by-game match sim, full standings table. Key moments
+      are tied to a real fixture & live scoreline and can change that result.
+- [x] **Glossary / How to Play** screen explaining every mechanic (`T.GLOSSARY`).
+- [x] **Career-score competition**: local Hall of Fame leaderboard, shareable
+      career codes (import a friend's to rank against them), and a Daily Challenge
+      (deterministic shared start). See state.js + UI halloffame/glossary/startDaily.
 
 ---
 
@@ -51,11 +58,16 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
 - [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
       Increment `totals.awards`; surface in results + legacy.
-- [ ] Grow the **key-moment pool** to 8-10 FWD scenarios (now at 6); context-aware
-      selection (finals only when in a cup run / late season).
-- [ ] More **mini-game types** (1v1 dribble dodge, header timing arc) + per-opponent
-      difficulty scaling. See `minigames.js`.
-- [ ] Wire **perks into math** (Leader/Glass Cannon/Engine/Clutch/etc.).
+- [x] Grow the **key-moment pool** to 8 football-true FWD scenarios; all tied to a
+      match with goal/assist effects. Fixed the `composure`-stat bug (FWDs lack it).
+- [x] More **mini-game types**: added Dribble Dodge (lane weaving) and One-on-One
+      (beat the onrushing keeper) — now 5 total. See `minigames.js`.
+- [x] Wire **perks into math** (clutch / bigGame / leader / glassCannon / engine /
+      ironMan / wonderkid all hooked).
+- [ ] Context-aware moment selection (finals only during a cup run / late season).
+- [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
+      bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
+- [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
 
 ---
 

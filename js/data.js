@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.3.0";
+  T.VERSION = "0.4.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -150,4 +150,21 @@
     XP_PER_LEVEL: 100,
     KEY_MOMENTS_PER_SEASON: 4,   // 3-5
   };
+
+  // ---- Glossary: plain-language help for every mechanic ---------------
+  T.GLOSSARY = [
+    { term: "The Season (38 games)", text: "Your league has 20 clubs; everyone plays everyone twice — that's 38 matchdays. Every match is simulated and shown game-by-game, and the standings decide your finish and the title." },
+    { term: "Club Tier (1–5)", text: "How strong your club is. Tier 5 is an elite, title-chasing side; Tier 1 is a lower-league battler. Starting lower is harder but multiplies your final Legacy Score." },
+    { term: "Overall (OVR)", text: "The average of your five attributes — a quick read on how good your striker is right now." },
+    { term: "Attributes", text: "Finishing (scoring), Pace (speed), Dribbling (beating defenders), Positioning (movement & passing), Physical (strength & aerials). Higher attributes mean more goals/assists and easier key-moment skill games." },
+    { term: "Form", text: "A volatile, per-season modifier (-10 to +10). Good runs and good morale lift it; it boosts (or drags) your output and key-moment rolls." },
+    { term: "Morale", text: "How happy you are (0–100). Scoring in big moments lifts it; failures and poor seasons lower it. It feeds into your form." },
+    { term: "Fitness", text: "Your condition (0–100). Low fitness means you miss more matches (fewer appearances) and score less. Injuries cut it; resting recovers it." },
+    { term: "Training", text: "Spend training points to raise attributes. The Train screen shows a live projection of how your changes move your expected goals, assists and rating before you commit." },
+    { term: "Key Moments", text: "A few matches each season pause on a decisive chance. Pick an action, play the skill mini-game, and the outcome is added to THAT match — it can turn a draw into a win and shift the table." },
+    { term: "Mini-games", text: "Timing bar (strike on the gold zone), Aim target (place your shot), Reaction tap (beat the cue), Dribble dodge (weave past defenders), One-on-one (beat the onrushing keeper). Higher attributes make them more forgiving." },
+    { term: "Perks", text: "Chosen on level-up, perks shape your identity — e.g. Clutch (better in key moments), Glass Cannon (more output, more injuries), Leader (lifts the team). They change the maths." },
+    { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating and longevity, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
+    { term: "Hall of Fame & Sharing", text: "Every finished career is saved to your local Hall of Fame and ranked by Legacy Score. Share a career code with friends, or paste theirs in to compare. The Daily Challenge gives everyone the same starting career to compete on fairly." },
+  ];
 })();

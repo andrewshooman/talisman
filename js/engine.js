@@ -64,67 +64,134 @@
     return T.clamp(pos, 1, 20);
   };
 
-  // Simulate a single FWD season. Returns a season record (also pushed
-  // to history and folded into totals by progression.advanceSeason()).
-  Engine.simSeason = function () {
-    const g = T.game;
-    const p = g.player;
-    const s = p.stats;
-    const TUNE = T.TUNING;
+  // Find the player's league match for a given round index (0-based).
+  Engine.playerMatchAt = function (season, rd) {
+    return season.matches.find(m => m.rd === rd && (m.h === 0 || m.a === 0));
+  };
 
-    const quality = Engine.teamQuality();
-    const finish = Engine.leagueFinish(quality);
+  // A single match rating from the player's involvement + the result.
+  function matchRating(pg, pa, goalDiff) {
+    let r = 6.0 + pg * 0.95 + pa * 0.55 + (goalDiff > 0 ? 0.4 : goalDiff < 0 ? -0.4 : 0);
+    r += T.rand(-0.5, 0.5);
+    return +T.clamp(r, 4, 10).toFixed(1);
+  }
 
-    // Form & fitness multipliers
-    const formMul = 1 + p.form / 40;            // ~0.75..1.25
-    const fitMul = 0.7 + (p.fitness / 100) * 0.3;
+  // ----------------------------------------------------------------
+  // runSeason() — build the league, simulate EVERY match game-by-game,
+  // and mark a few rounds as key-moment matches. Returns a transient
+  // `season` object the UI plays through; key-moment outcomes are
+  // applied via applyMoment(), then finalizeSeason() builds the record.
+  // ----------------------------------------------------------------
+  Engine.runSeason = function () {
+    const g = T.game, p = g.player;
+    const teams = T.League.buildTeams(g.club, g.club.tier, T.overall());
+    const sched = T.League.schedule(teams.length);
 
-    // Apps reduced by low fitness (injuries handled in progression).
-    const apps = Math.round(T.clamp(T.SEASON_GAMES * (p.fitness / 100), 8, 38));
+    const matches = [];
+    sched.forEach((day, rd) => day.forEach(([h, a]) => matches.push({ rd, h, a, gh: 0, ga: 0 })));
 
-    // Expected goals from FWD stats, scaled by team attack & form.
-    const attackFactor = 0.7 + (quality / 99) * 0.5;
-    let xg =
-      ((s.finishing * 0.5 + s.positioning * 0.3 + s.pace * 0.2) / 99) *
-      TUNE.MAX_GOALS * formMul * fitMul * attackFactor;
-    if (T.hasPerk("glassCannon")) xg *= 1.12;
-    let goals = Math.round(T.clamp(xg + T.rand(-3, 3), 0, TUNE.MAX_GOALS + 5));
+    // Missed matches from low fitness (injuries add more in progression).
+    const missCount = Math.round(T.clamp((1 - p.fitness / 100) * 8, 0, 16));
+    const missed = new Set();
+    while (missed.size < missCount) missed.add(T.randInt(0, 37));
 
-    // Assists from dribbling/positioning + team quality.
-    let assists = Math.round(
-      T.clamp(((s.dribbling * 0.6 + s.positioning * 0.4) / 99) *
-        TUNE.MAX_ASSISTS * formMul * attackFactor + T.rand(-2, 2),
-        0, TUNE.MAX_ASSISTS + 4)
-    );
+    // Player's per-match scoring rate, calibrated so the season total lands
+    // near the deterministic projection shown on the Train screen.
+    const proj = Engine.projectSeason(p.stats);
+    const played = Math.max(38 - missCount, 1);
+    const perMatchG = proj.goals / played;
+    const perMatchA = proj.assists / played;
 
-    // Avg rating from contribution per app + team success + form.
-    const contrib = (goals + assists * 0.7) / Math.max(apps, 1);
-    let rating = 6.0 + contrib * 1.6 + (20 - finish) * 0.03 + p.form * 0.02;
-    rating = +T.clamp(rating, 4.0, 9.9).toFixed(2);
+    const pmeta = {}; // round -> { missed, oppId, home, pg, pa, rating }
 
-    // Trophies (very rough first pass): title for winning the league.
-    const trophies = [];
-    if (finish === 1) trophies.push("League Title");
-    if (T.rng() < (quality - 55) / 120) trophies.push("Cup");
+    matches.forEach(m => {
+      const home = teams[m.h], away = teams[m.a];
+      let gh = T.League.matchGoals(home.str, away.str, true);
+      let ga = T.League.matchGoals(away.str, home.str, false);
 
-    // Synthesize per-match ratings around the average (for a form sparkline).
-    const matchRatings = [];
-    for (let i = 0; i < apps; i++) {
-      matchRatings.push(+T.clamp(rating + T.rand(-1.6, 1.6), 4, 10).toFixed(1));
+      if (m.h === 0 || m.a === 0) {
+        const isHome = m.h === 0;
+        const oppId = isHome ? m.a : m.h;
+        if (missed.has(m.rd)) {
+          pmeta[m.rd] = { missed: true, oppId, home: isHome, pg: 0, pa: 0, rating: 0 };
+        } else {
+          const pg = T.poisson(perMatchG);
+          const pa = T.poisson(perMatchA);
+          // ensure the player's team scores at least the player's goals + assists
+          const need = pg + pa;
+          if (isHome) gh = Math.max(gh, need); else ga = Math.max(ga, need);
+          const my = isHome ? gh : ga, op = isHome ? ga : gh;
+          pmeta[m.rd] = { missed: false, oppId, home: isHome, pg, pa, rating: matchRating(pg, pa, my - op) };
+        }
+      }
+      m.gh = gh; m.ga = ga;
+    });
+
+    // Pick spread-out key rounds among matches the player actually plays.
+    const playable = [];
+    for (let rd = 0; rd < 38; rd++) if (pmeta[rd] && !pmeta[rd].missed) playable.push(rd);
+    const wantKeys = Math.min(T.TUNING.KEY_MOMENTS_PER_SEASON, playable.length);
+    const keyRounds = [];
+    if (playable.length) {
+      for (let i = 0; i < wantKeys; i++) {
+        const idx = Math.floor(((i + 0.5) / wantKeys) * playable.length);
+        keyRounds.push(playable[T.clamp(idx, 0, playable.length - 1)]);
+      }
     }
 
+    return { teams, matches, pmeta, keyRounds: [...new Set(keyRounds)] };
+  };
+
+  // Apply a successful key-moment to its match: add a goal/assist for the
+  // player and bump that match's rating. Updates the underlying match score.
+  Engine.applyMoment = function (season, rd, effect) {
+    const m = Engine.playerMatchAt(season, rd);
+    const pm = season.pmeta[rd];
+    if (!m || !pm) return;
+    if (effect === "goal" || effect === "assist") {
+      if (pm.home) m.gh++; else m.ga++;
+      if (effect === "goal") pm.pg++; else pm.pa++;
+    }
+    pm.rating = +T.clamp(pm.rating + 0.3, 4, 10).toFixed(1);
+  };
+
+  // Build the season record from the (possibly moment-adjusted) season.
+  Engine.finalizeSeason = function (season) {
+    const g = T.game, p = g.player;
+    const table = T.League.computeTable(season.teams, season.matches);
+    const finish = table.findIndex(t => t.id === 0) + 1;
+
+    let goals = 0, assists = 0, apps = 0;
+    const matchRatings = [];
+    const matchList = [];
+    for (let rd = 0; rd < 38; rd++) {
+      const pm = season.pmeta[rd];
+      if (!pm) continue;
+      const m = Engine.playerMatchAt(season, rd);
+      const my = pm.home ? m.gh : m.ga, op = pm.home ? m.ga : m.gh;
+      if (!pm.missed) { apps++; goals += pm.pg; assists += pm.pa; matchRatings.push(pm.rating); }
+      matchList.push({
+        rd: rd + 1, opp: season.teams[pm.oppId].name, home: pm.home,
+        my, op, pg: pm.pg, pa: pm.pa, rating: pm.rating, missed: pm.missed,
+        res: my > op ? "W" : my < op ? "L" : "D",
+        key: season.keyRounds.includes(rd),
+      });
+    }
+    const rating = +(matchRatings.reduce((a, b) => a + b, 0) / Math.max(matchRatings.length, 1)).toFixed(2);
+
+    const trophies = [];
+    if (finish === 1) trophies.push("League Title");
+    if (T.rng() < (season.teams[0].str - 55) / 110) trophies.push("Domestic Cup");
+
     return {
-      season: g.season,
-      age: p.age,
-      club: g.club.name,
-      clubTier: g.club.tier,
-      apps, goals, assists,
-      rating,
-      finish,
-      trophies,
-      matchRatings,
-      cleanSheets: 0, // FWD: n/a (kept for schema parity)
-      keyMoments: [], // filled by moments.js if a moment season
+      season: g.season, age: p.age, club: g.club.name, clubTier: g.club.tier,
+      apps, goals, assists, rating, finish, trophies, matchRatings,
+      cleanSheets: 0, keyMoments: [],
+      matches: matchList,
+      table: table.map((t, i) => ({
+        pos: i + 1, name: t.name, P: t.P, W: t.W, D: t.D, L: t.L,
+        GD: t.GD, Pts: t.Pts, isPlayer: t.id === 0,
+      })),
     };
   };
 })();

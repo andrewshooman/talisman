@@ -43,6 +43,11 @@
       <div class="col">
         <button class="btn primary" id="new">New Career</button>
         ${T.hasSave() ? `<button class="btn" id="continue">Continue</button>` : ``}
+        <button class="btn" id="daily">⚡ Daily Challenge</button>
+        <div class="btn-row">
+          <button class="btn ghost" id="hof">🏅 Hall of Fame</button>
+          <button class="btn ghost" id="help">How to Play</button>
+        </div>
       </div>
       <div class="spacer"></div>
       <div class="center muted" style="font-size:12px">v${T.VERSION} · fictional clubs & players · no real branding</div>
@@ -50,7 +55,29 @@
     wrap.querySelector("#new").onclick = () => UI.show("create");
     const cont = wrap.querySelector("#continue");
     if (cont) cont.onclick = () => { if (T.load()) UI.show(T.game.careerOver ? "retirement" : "hub"); };
+    wrap.querySelector("#daily").onclick = () => UI.startDaily();
+    wrap.querySelector("#hof").onclick = () => UI.show("halloffame");
+    wrap.querySelector("#help").onclick = () => UI.show("glossary", { from: "title" });
     return wrap;
+  };
+
+  // Daily Challenge: a deterministic career start shared by everyone today.
+  UI.startDaily = function () {
+    const seed = T.dailySeed();
+    const r = T.makeRng(seed);
+    const pick = (arr) => arr[Math.floor(r() * arr.length)];
+    const opts = {
+      seed,
+      name: `${pick(T.FIRST_NAMES)} ${pick(T.LAST_NAMES)}`,
+      nation: pick(T.NATIONS),
+      position: "FWD",
+      clubTier: 1 + Math.floor(r() * 5),
+      clubName: r() < 0.5 ? `${pick(T.CLUB_PLACES)} ${pick(T.CLUB_NAMES)}` : `${pick(T.CLUB_NAMES)} ${pick(T.CLUB_PLACES)}`,
+    };
+    T.newGame(opts);
+    T.game.daily = T.todayKey();
+    T.save();
+    UI.show("hub");
   };
 
   // ---- Player creation (FWD) -----------------------------------------
@@ -198,6 +225,7 @@
       </button>
       <button class="btn primary" id="play">Play Season #${g.season}</button>
       <div class="btn-row">
+        <button class="btn ghost" id="help">How to Play</button>
         <button class="btn ghost" id="retire">Retire</button>
         <button class="btn ghost" id="menu">Menu</button>
       </div>
@@ -205,6 +233,7 @@
 
     wrap.querySelector("#train").onclick = () => UI.show("train");
     wrap.querySelector("#play").onclick = () => UI.playSeason();
+    wrap.querySelector("#help").onclick = () => UI.show("glossary");
     wrap.querySelector("#retire").onclick = () => { g.careerOver = true; T.save(); UI.show("retirement"); };
     wrap.querySelector("#menu").onclick = () => { T.save(); UI.show("title"); };
     return wrap;
@@ -330,20 +359,35 @@
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
-  // ---- Season flow: key moments then results -------------------------
-  // Runs the sim, plays through key moments interactively, then results.
+  // ---- Season flow: simulate the league, play key matches, results ----
+  // runSeason() builds & sims the whole 20-team league game-by-game and
+  // marks a few rounds as key matches. We play those interactively (each
+  // tied to its real fixture & scoreline), then finalize into a record.
   UI.playSeason = function () {
-    const g = T.game, p = g.player;
+    const g = T.game;
     T.Prog.rollForm();
-    const record = T.Engine.simSeason();
-    const moments = T.Moments.pickSeason();
-    let idx = 0;
+    const season = T.Engine.runSeason();
+    g._season = season;
 
+    // Attach each key moment to its real fixture (opponent + live scoreline).
+    const moments = T.Moments.pickSeason(season.keyRounds.length);
+    moments.forEach((mo, i) => {
+      const rd = season.keyRounds[i];
+      const pm = season.pmeta[rd];
+      const m = T.Engine.playerMatchAt(season, rd);
+      mo._rd = rd;
+      mo._match = {
+        rd: rd + 1, oppName: season.teams[pm.oppId].name, home: pm.home,
+        gh: pm.home ? m.gh : m.ga, ga: pm.home ? m.ga : m.gh,
+      };
+    });
+
+    let idx = 0;
     const next = () => {
       if (idx < moments.length) {
-        UI.renderMoment(moments[idx], record, () => { idx++; next(); });
+        UI.renderMoment(moments[idx], season, () => { idx++; next(); });
       } else {
-        // injuries & end-of-season processing
+        const record = T.Engine.finalizeSeason(season);
         T.Prog.rollInjury();
         const ended = T.Prog.rollCareerEndInjury();
         const adv = T.Prog.advanceSeason(record);
@@ -357,7 +401,7 @@
   };
 
   // Step 1: show match context + scene + prompt + action choices.
-  UI.renderMoment = function (moment, record, done) {
+  UI.renderMoment = function (moment, season, done) {
     const ctx = T.Moments.context(moment);
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
@@ -375,14 +419,14 @@
         <span class="grow" style="text-align:left">${choice.label}
           <span class="choice-impact">${choice.impact}</span></span>
         <span class="choice-stat">${lbl(choice.stat)} ${sv != null ? sv : ""}</span></button>`);
-      b.onclick = () => UI.playMomentGame(moment, choice, record, done);
+      b.onclick = () => UI.playMomentGame(moment, choice, season, done);
       choices.appendChild(b);
     });
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
   // Step 2: play the skill-game for the chosen action, then resolve.
-  UI.playMomentGame = function (moment, choice, record, done) {
+  UI.playMomentGame = function (moment, choice, season, done) {
     const p = T.game.player;
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
@@ -401,12 +445,20 @@
     }, (gameResult) => {
       const res = T.Moments.resolve(choice, gameResult.skill, moment);
       res.gameText = gameResult.text;
-      // apply deltas
       p.form = T.clamp(p.form + res.deltas.form, -10, 10);
       p.morale = T.clamp(p.morale + res.deltas.morale, 0, 100);
-      record.goals += res.deltas.goals;
-      record.rating = +T.clamp(record.rating + res.deltas.rating, 4, 9.9).toFixed(2);
-      record.keyMoments.push({ id: moment.id, success: res.success });
+
+      // A successful scoring/assisting choice changes the actual match.
+      if (res.success && res.effect && res.effect !== "none") {
+        T.Engine.applyMoment(season, moment._rd, res.effect);
+      }
+      // recompute the shown scoreline for the result screen
+      const m = T.Engine.playerMatchAt(season, moment._rd);
+      const pm = season.pmeta[moment._rd];
+      res.matchAfter = {
+        opp: moment._match.oppName, home: pm.home,
+        my: pm.home ? m.gh : m.ga, op: pm.home ? m.ga : m.gh,
+      };
       T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
       setTimeout(() => UI.renderMomentResult(res, done), 350);
     });
@@ -415,7 +467,8 @@
   UI.renderMomentResult = function (res, done) {
     const d = res.deltas;
     const chips = [];
-    if (d.goals) chips.push(`<span class="fx-chip good">⚽ Goal +${d.goals}</span>`);
+    if (res.success && res.effect === "goal") chips.push(`<span class="fx-chip good">⚽ Goal</span>`);
+    if (res.success && res.effect === "assist") chips.push(`<span class="fx-chip good">🅰 Assist</span>`);
     if (d.rating) chips.push(`<span class="fx-chip ${d.rating >= 0 ? "good" : "bad"}">Rating ${d.rating >= 0 ? "+" : ""}${d.rating}</span>`);
     if (d.morale) chips.push(`<span class="fx-chip ${d.morale >= 0 ? "good" : "bad"}">Morale ${d.morale >= 0 ? "+" : ""}${d.morale}</span>`);
     if (d.form) chips.push(`<span class="fx-chip ${d.form >= 0 ? "good" : "bad"}">Form ${d.form >= 0 ? "+" : ""}${d.form}</span>`);
@@ -429,6 +482,12 @@
       ${res.gameText ? `<div class="center muted">${res.gameText}</div>` : ``}
       <div class="card center"><p style="font-size:18px;margin:0">${res.text}</p></div>
       <div class="fx-chips">${chips.join("")}</div>
+      ${res.matchAfter ? `<div class="card center">
+        <div class="muted" style="font-size:12px">Match score</div>
+        <b style="font-size:20px">${res.matchAfter.home
+          ? `${T.game.club.name} ${res.matchAfter.my}–${res.matchAfter.op} ${res.matchAfter.opp}`
+          : `${res.matchAfter.opp} ${res.matchAfter.op}–${res.matchAfter.my} ${T.game.club.name}`}</b>
+      </div>` : ``}
       <div class="card center muted" style="font-size:13px">${res.impact || ""}</div>
       <button class="btn primary" id="cont">Continue</button>
     `;
@@ -463,14 +522,25 @@
       ${trophyHtml}
 
       <div class="card">
-        <div class="muted" style="font-size:12px;margin-bottom:6px">League</div>
-        ${T.Vis.leaguePos(record.finish)}
-      </div>
-
-      <div class="card">
         <div class="muted" style="font-size:12px;margin-bottom:4px">Season form (per match rating)</div>
         ${T.Vis.sparkline(record.matchRatings)}
       </div>
+
+      ${record.table ? `<div class="card">
+        <div class="row between" style="margin-bottom:6px">
+          <b>Final table</b>
+          <button class="btn ghost" id="fullTable" style="width:auto;min-height:34px;padding:0 12px;font-size:12px">Full table</button>
+        </div>
+        ${T.Vis.leagueTable(tableWindow(record.table), 0)}
+      </div>` : ``}
+
+      ${record.matches ? `<div class="card">
+        <div class="row between" style="margin-bottom:4px">
+          <b>Every game (${record.matches.length})</b>
+          <button class="btn ghost" id="toggleGames" style="width:auto;min-height:34px;padding:0 12px;font-size:12px">Show all</button>
+        </div>
+        <div id="gamesBox">${T.Vis.matchList(record.matches.slice(0, 6))}</div>
+      </div>` : ``}
 
       ${(!careerEnded && T.game.pendingPerks) ? `<div class="card center pop-in">
         <b class="gold">⬆ LEVEL UP ×${T.game.pendingPerks}</b>
@@ -484,14 +554,58 @@
       T.game.pendingPerks = 0;
       UI.showPerkPick(picks, () => UI.show("hub"));
     };
+    const ftBtn = wrap.querySelector("#fullTable");
+    if (ftBtn) {
+      let full = false;
+      ftBtn.onclick = () => {
+        full = !full;
+        ftBtn.previousElementSibling; // no-op for clarity
+        const card = ftBtn.closest(".card");
+        const tbl = card.querySelector(".ltable");
+        tbl.outerHTML = T.Vis.leagueTable(full ? record.table : tableWindow(record.table), 0);
+        ftBtn.textContent = full ? "Compact" : "Full table";
+      };
+    }
+    const tgBtn = wrap.querySelector("#toggleGames");
+    if (tgBtn) {
+      let all = false;
+      tgBtn.onclick = () => {
+        all = !all;
+        wrap.querySelector("#gamesBox").innerHTML =
+          T.Vis.matchList(all ? record.matches : record.matches.slice(0, 6));
+        tgBtn.textContent = all ? "Show less" : "Show all";
+      };
+    }
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
     if (record.trophies.length) UI.confetti();
   };
+
+  // Compact league view: top 5 + a window around the player.
+  function tableWindow(table) {
+    const meIdx = table.findIndex(r => r.isPlayer);
+    const set = new Set([0, 1, 2, 3, 4, meIdx - 1, meIdx, meIdx + 1, table.length - 1]);
+    return table.filter((_, i) => set.has(i) && i >= 0 && i < table.length);
+  }
 
   // ---- Retirement / legacy summary -----------------------------------
   UI.screens.retirement = function () {
     const g = T.game, t = g.totals;
     const L = T.Legacy.compute();
+
+    // Build a Hall-of-Fame entry and save it once per career.
+    const entry = {
+      name: g.player.name, nation: g.player.nation, club: g.club.name,
+      tier: L.tier, score: L.score, goals: t.goals, assists: t.assists,
+      trophies: t.trophies, seasons: g.history.length, startTier: L.breakdown.startTier,
+      daily: g.daily || null, when: Date.now(),
+    };
+    let rank = null;
+    if (!g._hofSaved) {
+      rank = T.addToHOF(entry).rank;
+      g._hofSaved = true;
+      T.save();
+    }
+
     const wrap = el(`<div class="col"></div>`);
     // Build the trophy cabinet from history.
     const cabinet = [];
@@ -510,6 +624,8 @@
         <div class="center">
           <div class="pill gold" style="font-size:18px">${L.score.toLocaleString()}</div>
           <div class="muted" style="font-size:12px;margin-top:6px">difficulty ×${L.breakdown.diffMult}</div>
+          ${rank ? `<div class="muted" style="font-size:12px;margin-top:4px">Hall of Fame: <b class="gold">#${rank}</b></div>` : ``}
+          ${g.daily ? `<div class="pill" style="margin-top:6px">⚡ Daily ${g.daily}</div>` : ``}
         </div>
       </div>
 
@@ -537,12 +653,94 @@
         </div>
       </div>
 
+      <div class="card">
+        <b>Challenge a friend</b>
+        <div class="muted" style="font-size:13px;margin:4px 0 8px">Share your result, or your career code to compare directly.</div>
+        <div class="btn-row">
+          <button class="btn" id="shareText">Copy result</button>
+          <button class="btn ghost" id="shareCode">Copy code</button>
+        </div>
+        <div class="muted center" id="shareMsg" style="font-size:12px;margin-top:8px"></div>
+      </div>
+
       <button class="btn primary" id="again">New Career</button>
-      <button class="btn ghost" id="title">Main Menu</button>
+      <div class="btn-row">
+        <button class="btn ghost" id="hof">Hall of Fame</button>
+        <button class="btn ghost" id="title">Main Menu</button>
+      </div>
     `;
+    const flash = (msg) => { wrap.querySelector("#shareMsg").textContent = msg; };
+    const copy = (text, msg) => {
+      try {
+        if (navigator.clipboard) navigator.clipboard.writeText(text);
+        flash(msg);
+      } catch (e) { flash("Copy not available — here it is:\n" + text); }
+    };
+    wrap.querySelector("#shareText").onclick = () => copy(T.shareText(entry), "Result copied — paste it to a friend!");
+    wrap.querySelector("#shareCode").onclick = () => copy(T.encodeCareer(entry), "Career code copied!");
     wrap.querySelector("#again").onclick = () => { T.clearSave(); UI.show("create"); };
+    wrap.querySelector("#hof").onclick = () => UI.show("halloffame");
     wrap.querySelector("#title").onclick = () => UI.show("title");
     UI.confetti(120);
+    return wrap;
+  };
+
+  // ---- Hall of Fame (local leaderboard + import friends' codes) -------
+  UI.screens.halloffame = function () {
+    const list = T.loadHOF();
+    const wrap = el(`<div class="col"></div>`);
+    const rowHtml = (e, i) => `
+      <div class="hof-row ${i === 0 ? "top1" : ""}">
+        <div class="rank">${i + 1}</div>
+        <div class="who">
+          <b>${e.name}${e.rival ? ' <span class="muted" style="font-size:11px">(friend)</span>' : ""}</b>
+          <span class="tier">${e.tier} · ${e.goals}G ${e.assists}A · ${e.trophies}🏆 · ${e.seasons} seasons${e.daily ? " · ⚡" : ""}</span>
+        </div>
+        <div class="score">${(e.score || 0).toLocaleString()}</div>
+      </div>`;
+    wrap.innerHTML = `
+      <div class="row between"><h2 style="margin:0">🏅 Hall of Fame</h2>
+        <span class="pill">${list.length} careers</span></div>
+      <div class="muted" style="font-size:13px">Your best careers, ranked by Legacy Score. Highest score wins.</div>
+      <div class="card">${list.length ? list.map(rowHtml).join("") : `<span class="muted">No careers yet — go make history.</span>`}</div>
+
+      <div class="card">
+        <b>Add a friend's score</b>
+        <div class="muted" style="font-size:13px;margin:4px 0 8px">Paste a career code they shared to rank against them.</div>
+        <input id="codeIn" type="text" placeholder="Paste career code…" />
+        <button class="btn" id="addCode" style="margin-top:8px">Add to board</button>
+        <div class="muted center" id="addMsg" style="font-size:12px;margin-top:8px"></div>
+      </div>
+
+      <button class="btn primary" id="back">Back</button>
+    `;
+    wrap.querySelector("#addCode").onclick = () => {
+      const code = wrap.querySelector("#codeIn").value.trim();
+      const e = T.decodeCareer(code);
+      if (!e || typeof e.score !== "number") { wrap.querySelector("#addMsg").textContent = "Couldn't read that code."; return; }
+      e.rival = true;
+      T.addToHOF(e);
+      UI.show("halloffame");
+    };
+    wrap.querySelector("#back").onclick = () => UI.show(T.game ? (T.game.careerOver ? "retirement" : "hub") : "title");
+    return wrap;
+  };
+
+  // ---- Glossary / How to Play ----------------------------------------
+  UI.screens.glossary = function (data) {
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <h2>How to Play</h2>
+      <div class="muted" style="font-size:13px">Every mechanic in TALISMAN, in plain language.</div>
+      <div class="card">
+        ${T.GLOSSARY.map(g => `<div class="glos-item"><b>${g.term}</b><p>${g.text}</p></div>`).join("")}
+      </div>
+      <button class="btn primary" id="back">Back</button>
+    `;
+    wrap.querySelector("#back").onclick = () => {
+      if (data && data.from === "title") UI.show("title");
+      else UI.show(T.game ? "hub" : "title");
+    };
     return wrap;
   };
 
