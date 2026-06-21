@@ -70,10 +70,13 @@
     return T.poisson(lambda);
   };
 
-  // Aggregate a standings table from the played matches.
-  League.computeTable = function (teams, matches) {
+  // Aggregate a standings table from the played matches. Optional maxRd
+  // (0-based, inclusive) limits to matchdays already played — used by the
+  // live season feed to show the table as it stands mid-season.
+  League.computeTable = function (teams, matches, maxRd) {
     teams.forEach(t => { t.P = t.W = t.D = t.L = t.GF = t.GA = t.Pts = 0; });
     matches.forEach(m => {
+      if (maxRd != null && m.rd > maxRd) return;
       const H = teams[m.h], A = teams[m.a];
       H.P++; A.P++;
       H.GF += m.gh; H.GA += m.ga; A.GF += m.ga; A.GA += m.gh;

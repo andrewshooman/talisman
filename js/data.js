@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.4.0";
+  T.VERSION = "0.5.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
