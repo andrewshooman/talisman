@@ -398,6 +398,20 @@ input[type="text"], select {
 }
 .dd-def { position: absolute; margin-left: -10px; font-size: 22px; color: var(--pop); }
 
+/* Sprint duel mini-game */
+.duel { height: 22px; background: var(--bg-3); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.duel-bar { height: 100%; width: 0%; transition: width .05s linear; }
+.duel-bar.you { background: linear-gradient(90deg, var(--gold-dim), var(--gold)); }
+.duel-bar.def { background: var(--pop); opacity: .55; }
+
+/* Power header mini-game (vertical track) */
+.vtrack { position: relative; height: 200px; width: 64px; margin: 0 auto; background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.vzone { position: absolute; left: 0; right: 0; background: rgba(245,196,81,.28); border-top: 1px solid var(--gold); border-bottom: 1px solid var(--gold); }
+.vmarker { position: absolute; left: 0; right: 0; height: 6px; margin-top: -3px; background: var(--text); box-shadow: 0 0 8px rgba(255,255,255,.5); }
+
+/* Free-kick wall (inside .goal) */
+.fk-wall { position: absolute; left: 35%; width: 30%; bottom: 0; height: 42%; background: rgba(233,233,242,.14); border: 1px solid rgba(233,233,242,.3); border-radius: 4px 4px 0 0; }
+
 /* One-on-one mini-game */
 .oo-track {
   position: relative; height: 46px; border-radius: 10px; overflow: hidden;
@@ -421,6 +435,8 @@ input[type="text"], select {
 
 /* Game-by-game match list */
 .matchlist { display: flex; flex-direction: column; }
+#feed { max-height: 320px; overflow-y: auto; scroll-behavior: smooth; }
+.match-row { animation: fade .25s ease; }
 .match-row {
   display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: center;
   padding: 7px 4px; border-top: 1px solid var(--line); font-size: 13px;

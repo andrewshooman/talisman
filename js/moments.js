@@ -62,7 +62,7 @@
       prompt: "A corner curls toward the back post and you've lost your marker.",
       choices: [
         { label: "Attack it — power header", stat: "physical", difficulty: 64, effect: "goal",
-          game: { type: "timingBar", action: "HEAD" },
+          game: { type: "powerHeader" },
           impact: "Rise highest and bury the header.",
           success: "Thumped it down and in!", fail: "Got under it — over the bar." },
         { label: "Glance it across goal", stat: "positioning", difficulty: 56, effect: "goal",
@@ -132,6 +132,36 @@
       ],
     },
     {
+      id: "free_kick", scene: "goal", comp: "LEAGUE", minute: 74, stakesMult: 1.2,
+      stakes: "A free kick in a dangerous spot — a chance to bend one in.",
+      prompt: "You stand over a free kick just outside the box, a wall in front of you.",
+      choices: [
+        { label: "Bend it over the wall", stat: "finishing", difficulty: 68, effect: "goal",
+          game: { type: "freeKick" },
+          impact: "Curl it past the wall and keeper into the top corner.",
+          success: "Whipped it over the wall — into the top corner!", fail: "Cannoned into the wall." },
+        { label: "Clip it to the back post", stat: "positioning", difficulty: 50, effect: "assist",
+          game: { type: "aimTarget" },
+          impact: "Pick out the run and set up a header.",
+          success: "Hung it up perfectly — headed home. Assist!", fail: "Overhit it to no one." },
+      ],
+    },
+    {
+      id: "race_through", scene: "goal", comp: "LEAGUE", minute: 66, stakesMult: 1.15,
+      stakes: "A long ball over the top — it's a footrace to goal.",
+      prompt: "The ball drops over the defence and you're stride-for-stride with the last man.",
+      choices: [
+        { label: "Outsprint him", stat: "pace", difficulty: 60, effect: "goal",
+          game: { type: "sprintDuel" },
+          impact: "Win the race and you're clean through to finish.",
+          success: "Burned him off and slotted it home!", fail: "He edged the race and cleared." },
+        { label: "Check, wait for support", stat: "positioning", difficulty: 48, effect: "assist",
+          game: { type: "aimTarget" },
+          impact: "Slow it down and tee up the arriving midfielder.",
+          success: "Held it up and squared it. Assist!", fail: "Defenders swarmed and won it back." },
+      ],
+    },
+    {
       id: "final_breakaway", scene: "goal", comp: "FINAL", minute: 88, stakesMult: 1.7,
       stakes: "Cup final, late — this is the moment careers are remembered for.",
       prompt: "You break clear in the cup final with only the keeper to beat.",
@@ -190,13 +220,20 @@
     };
   };
 
-  Moments.pickSeason = function (n) {
+  // Context-aware selection: cup-only scenarios (CUP/FINAL) appear only
+  // during a cup run; the final is saved for last so it lands late-season.
+  Moments.pickSeason = function (n, ctx) {
     const count = n || T.TUNING.KEY_MOMENTS_PER_SEASON;
-    const pool = Moments.POOL_FWD.slice();
+    const cupRun = ctx && ctx.cupRun;
+    let pool = Moments.POOL_FWD.filter(s => cupRun || (s.comp !== "CUP" && s.comp !== "FINAL"));
+    const finalScene = cupRun ? pool.find(s => s.comp === "FINAL") : null;
+    pool = pool.filter(s => s !== finalScene);
+
     const out = [];
-    while (out.length < count && pool.length) {
+    while (out.length < count - (finalScene ? 1 : 0) && pool.length) {
       out.push(pool.splice(Math.floor(T.rng() * pool.length), 1)[0]);
     }
+    if (finalScene && out.length < count) out.push(finalScene); // final lands last
     return out;
   };
 })();

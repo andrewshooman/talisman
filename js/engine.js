@@ -139,7 +139,11 @@
       }
     }
 
-    return { teams, matches, pmeta, keyRounds: [...new Set(keyRounds)] };
+    // Is there a cup run this season? Stronger clubs go deep more often.
+    // Gates the cup-final / penalty key moments and the Domestic Cup trophy.
+    const cupRun = T.rng() < T.clamp((teams[0].str - 50) / 110, 0.05, 0.7);
+
+    return { teams, matches, pmeta, keyRounds: [...new Set(keyRounds)], cupRun };
   };
 
   // Apply a successful key-moment to its match: add a goal/assist for the
@@ -181,11 +185,22 @@
 
     const trophies = [];
     if (finish === 1) trophies.push("League Title");
-    if (T.rng() < (season.teams[0].str - 55) / 110) trophies.push("Domestic Cup");
+    if (season.cupRun && T.rng() < 0.45) trophies.push("Domestic Cup");
+
+    // Individual awards & national call-up, from this season's output.
+    const awards = [];
+    if (goals >= 22 || (goals >= 18 && finish <= 3)) awards.push("Golden Boot");
+    if (rating >= 7.3 && finish <= 4) awards.push("Player of the Season");
+    else if (rating >= 7.0) awards.push("Team of the Season");
+    if (p.age <= 21 && (goals >= 15 || rating >= 7.1)) awards.push("Young Player of the Year");
+    if (!p.international && (rating >= 7.0 || goals >= 16)) {
+      awards.push("National Call-Up");
+      p.international = true;
+    }
 
     return {
       season: g.season, age: p.age, club: g.club.name, clubTier: g.club.tier,
-      apps, goals, assists, rating, finish, trophies, matchRatings,
+      apps, goals, assists, rating, finish, trophies, awards, matchRatings,
       cleanSheets: 0, keyMoments: [],
       matches: matchList,
       table: table.map((t, i) => ({

@@ -359,10 +359,11 @@
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
-  // ---- Season flow: simulate the league, play key matches, results ----
-  // runSeason() builds & sims the whole 20-team league game-by-game and
-  // marks a few rounds as key matches. We play those interactively (each
-  // tied to its real fixture & scoreline), then finalize into a record.
+  // ---- Season flow: LIVE game-by-game playback with interruptions -----
+  // runSeason() builds & sims the whole 20-team league. We then "play" it
+  // matchday-by-matchday in a live feed; when we reach a key-moment round
+  // we pause and launch the interactive scenario (which can change that
+  // match), then resume. At matchday 38 we finalize into a record.
   UI.playSeason = function () {
     const g = T.game;
     T.Prog.rollForm();
@@ -370,7 +371,8 @@
     g._season = season;
 
     // Attach each key moment to its real fixture (opponent + live scoreline).
-    const moments = T.Moments.pickSeason(season.keyRounds.length);
+    const moments = T.Moments.pickSeason(season.keyRounds.length, { cupRun: season.cupRun });
+    const roundMoment = {};
     moments.forEach((mo, i) => {
       const rd = season.keyRounds[i];
       const pm = season.pmeta[rd];
@@ -380,24 +382,156 @@
         rd: rd + 1, oppName: season.teams[pm.oppId].name, home: pm.home,
         gh: pm.home ? m.gh : m.ga, ga: pm.home ? m.ga : m.gh,
       };
+      roundMoment[rd] = mo;
     });
 
-    let idx = 0;
-    const next = () => {
-      if (idx < moments.length) {
-        UI.renderMoment(moments[idx], season, () => { idx++; next(); });
-      } else {
-        const record = T.Engine.finalizeSeason(season);
-        T.Prog.rollInjury();
-        const ended = T.Prog.rollCareerEndInjury();
-        const adv = T.Prog.advanceSeason(record);
-        if (ended) g.careerOver = true;
-        g.pendingPerks = ended ? 0 : (adv.levelsGained || 0);
-        T.save();
-        UI.renderResults(record, ended);
-      }
+    UI.season = { season, roundMoment, round: 0, playing: true, speed: 520, feed: [] };
+    UI.renderSeasonScreen();
+    UI.seasonTick();
+  };
+
+  // The live season screen: header (live position), progress, match feed, controls.
+  UI.renderSeasonScreen = function () {
+    const S = UI.season, g = T.game;
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div class="row between">
+        <div class="row" style="gap:8px">
+          <div class="crest-inline">${T.Vis.crest(g.club.name, 30)}</div>
+          <div><h2 style="margin:0">Season #${g.season}</h2>
+            <div class="muted" style="font-size:12px">${g.club.name}</div></div>
+        </div>
+        <div class="center"><div class="muted" style="font-size:11px">Position</div>
+          <b id="livePos" class="gold">—</b></div>
+      </div>
+
+      <div class="card">
+        <div class="row between" style="font-size:12px">
+          <span class="muted">Matchday <b id="mdNow" class="gold">0</b> / 38</span>
+          <span class="muted"><b id="livePts">0</b> pts</span>
+        </div>
+        <div class="bar" style="margin-top:8px"><span id="mdBar" style="width:0%"></span></div>
+      </div>
+
+      <div class="card" style="min-height:300px">
+        <b>Match feed</b>
+        <div class="matchlist" id="feed" style="margin-top:6px"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="pause">⏸ Pause</button>
+        <button class="btn ghost" id="ff">⏩ Fast</button>
+        <button class="btn ghost" id="skip">Skip ⏭</button>
+      </div>
+    `;
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+    S.dom = {
+      feed: wrap.querySelector("#feed"), pos: wrap.querySelector("#livePos"),
+      pts: wrap.querySelector("#livePts"), mdNow: wrap.querySelector("#mdNow"),
+      mdBar: wrap.querySelector("#mdBar"),
     };
-    next();
+    // re-draw any already-revealed matches (e.g. returning from a moment)
+    S.feed.forEach(rowHtml => S.dom.feed.insertAdjacentHTML("beforeend", rowHtml));
+    UI.scrollFeed();
+    UI.updateLiveTable();
+
+    wrap.querySelector("#pause").onclick = () => {
+      S.playing = !S.playing;
+      wrap.querySelector("#pause").textContent = S.playing ? "⏸ Pause" : "▶ Play";
+      if (S.playing) UI.seasonTick();
+    };
+    wrap.querySelector("#ff").onclick = () => {
+      S.speed = S.speed > 300 ? 140 : S.speed > 80 ? 30 : 520;
+      wrap.querySelector("#ff").textContent = S.speed <= 30 ? "⏩ Fast×" : S.speed <= 140 ? "⏩ Fast+" : "⏩ Fast";
+    };
+    wrap.querySelector("#skip").onclick = () => {
+      // reveal instantly up to the next key moment (or the end)
+      S.speed = 0;
+      if (!S.playing) { S.playing = true; UI.seasonTick(); }
+    };
+  };
+
+  UI.seasonTick = function () {
+    const S = UI.season; if (!S) return;
+    clearTimeout(S.timer);
+    if (S.round >= 38) return UI.finishSeasonPlayback();
+
+    const rd = S.round;
+    const mo = S.roundMoment[rd];
+    if (mo && !mo._done) {
+      // Interrupt the broadcast for the key moment.
+      S.playing = false;
+      UI.renderMoment(mo, S.season, () => {
+        mo._done = true;
+        UI.revealRound(rd);     // now reveal the (possibly changed) result
+        S.round++;
+        S.playing = true;
+        UI.renderSeasonScreen(); // back to the feed
+        UI.seasonTick();
+      });
+      return;
+    }
+
+    UI.revealRound(rd);
+    S.round++;
+    if (S.playing) S.timer = setTimeout(() => UI.seasonTick(), S.speed);
+  };
+
+  // Reveal one matchday in the feed + update the live table.
+  UI.revealRound = function (rd) {
+    const S = UI.season;
+    const pm = S.season.pmeta[rd];
+    if (pm) {
+      const m = T.Engine.playerMatchAt(S.season, rd);
+      const my = pm.home ? m.gh : m.ga, op = pm.home ? m.ga : m.gh;
+      const row = T.Vis.matchRow({
+        rd: rd + 1, opp: S.season.teams[pm.oppId].name, home: pm.home, my, op,
+        res: my > op ? "W" : my < op ? "L" : "D", pg: pm.pg, pa: pm.pa,
+        missed: pm.missed, key: !!S.roundMoment[rd],
+      });
+      S.feed.push(row);
+      if (S.dom) { S.dom.feed.insertAdjacentHTML("beforeend", row); UI.scrollFeed(); }
+    }
+    UI.updateLiveTable();
+  };
+
+  UI.updateLiveTable = function () {
+    const S = UI.season; if (!S || !S.dom) return;
+    const played = S.feed.length;
+    const table = T.League.computeTable(S.season.teams, S.season.matches, played - 1);
+    const meRow = table.find(t => t.id === 0);
+    const mePos = table.findIndex(t => t.id === 0) + 1;
+    S.dom.pos.textContent = played ? UI.ordSup(mePos) : "—";
+    S.dom.pts.textContent = meRow ? meRow.Pts : 0;
+    S.dom.mdNow.textContent = played;
+    S.dom.mdBar.style.width = Math.round((played / 38) * 100) + "%";
+  };
+
+  UI.scrollFeed = function () {
+    const S = UI.season; if (S && S.dom) S.dom.feed.scrollTop = S.dom.feed.scrollHeight;
+  };
+  UI.ordSup = function (n) {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  UI.finishSeasonPlayback = function () {
+    const g = T.game, S = UI.season;
+    const record = T.Engine.finalizeSeason(S.season);
+    T.Prog.rollInjury();
+    const ended = T.Prog.rollCareerEndInjury();
+    const adv = T.Prog.advanceSeason(record);
+    if (ended) g.careerOver = true;
+    g.pendingPerks = ended ? 0 : (adv.levelsGained || 0);
+
+    // End-of-season club movement + transfer interest (skip if career over).
+    record.movement = ended ? null : T.Prog.applyClubMovement(record);
+    g._offers = ended ? [] : T.Prog.generateOffers(record);
+
+    g._lastRecord = record;
+    UI.season = null;
+    T.save();
+    UI.renderResults(record, ended);
   };
 
   // Step 1: show match context + scene + prompt + action choices.
@@ -428,10 +562,16 @@
   // Step 2: play the skill-game for the chosen action, then resolve.
   UI.playMomentGame = function (moment, choice, season, done) {
     const p = T.game.player;
+    const statVal = p.stats[choice.stat] != null ? p.stats[choice.stat] : 50;
+    const ease = statVal >= 75 ? "much easier" : statVal >= 60 ? "easier" : statVal >= 45 ? "fair" : "tough";
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
       <div class="pill gold center" style="align-self:center">${choice.label.toUpperCase()}</div>
       <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
+      <div class="card center" style="padding:8px">
+        <span class="choice-stat">${lbl(choice.stat)} ${statVal}</span>
+        <span class="muted" style="font-size:12px;margin-left:8px">your ${lbl(choice.stat).toLowerCase()} makes this <b class="gold">${ease}</b></span>
+      </div>
       <div id="mghost"></div>
     `;
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
@@ -441,7 +581,8 @@
     T.Minigames.run(host, {
       type: game.type,
       action: game.action,
-      statVal: p.stats[choice.stat] != null ? p.stats[choice.stat] : 50,
+      statVal: statVal,
+      statLabel: lbl(choice.stat),
     }, (gameResult) => {
       const res = T.Moments.resolve(choice, gameResult.skill, moment);
       res.gameText = gameResult.text;
@@ -503,6 +644,15 @@
           ${record.trophies.map(tn => `<div class="trophy-item">${T.Vis.trophy(tn === "Cup" ? "cup" : "cup")}<span>${tn}</span></div>`).join("")}
         </div></div>`
       : ``;
+    const awardsHtml = (record.awards && record.awards.length)
+      ? `<div class="card center pop-in"><div class="cabinet" style="justify-content:center">
+          ${record.awards.map(an => `<div class="trophy-item">${T.Vis.trophy("award")}<span>${an}</span></div>`).join("")}
+        </div></div>`
+      : ``;
+    const moveHtml = record.movement
+      ? `<div class="card center"><b class="${record.movement === "promoted" ? "gold" : ""}" style="${record.movement === "relegated" ? "color:var(--bad)" : ""}">
+          ${record.movement === "promoted" ? "⬆ Promoted! Your club moves up a tier." : "⬇ Relegated — your club drops a tier."}</b></div>`
+      : ``;
     wrap.innerHTML = `
       <div class="row" style="gap:10px;align-items:center">
         <div class="crest-inline">${T.Vis.crest(record.club, 40)}</div>
@@ -520,6 +670,8 @@
       </div>
 
       ${trophyHtml}
+      ${awardsHtml}
+      ${moveHtml}
 
       <div class="card">
         <div class="muted" style="font-size:12px;margin-bottom:4px">Season form (per match rating)</div>
@@ -552,7 +704,11 @@
       if (T.game.careerOver) { UI.show("retirement"); return; }
       const picks = T.game.pendingPerks || 0;
       T.game.pendingPerks = 0;
-      UI.showPerkPick(picks, () => UI.show("hub"));
+      // perk picks -> transfer window (if any offers) -> hub
+      UI.showPerkPick(picks, () => {
+        if (T.game._offers && T.game._offers.length) UI.show("transfer");
+        else UI.show("hub");
+      });
     };
     const ftBtn = wrap.querySelector("#fullTable");
     if (ftBtn) {
@@ -723,6 +879,48 @@
       UI.show("halloffame");
     };
     wrap.querySelector("#back").onclick = () => UI.show(T.game ? (T.game.careerOver ? "retirement" : "hub") : "title");
+    return wrap;
+  };
+
+  // ---- Transfer window (offers from bigger clubs) --------------------
+  UI.screens.transfer = function () {
+    const g = T.game;
+    const offers = g._offers || [];
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div class="center">
+        <div class="pill gold pop-in">TRANSFER WINDOW</div>
+        <h2 style="margin-top:8px">Clubs want to sign you</h2>
+        <div class="muted" style="font-size:13px">A strong season has turned heads. Move up — or stay loyal.</div>
+      </div>
+      <div class="col" id="offers"></div>
+      <button class="btn ghost" id="stay">
+        Stay at ${g.club.name}${T.hasPerk("loyal") ? " · loyalty bonus" : ""}
+      </button>
+    `;
+    const list = wrap.querySelector("#offers");
+    offers.forEach(o => {
+      const card = el(`<button class="btn choice-btn">
+        <span class="crest-inline" style="margin-right:8px">${T.Vis.crest(o.name, 34)}</span>
+        <span class="grow" style="text-align:left"><b>${o.name}</b>
+          <span class="choice-impact">${T.CLUB_TIERS[o.tier].label} · Tier ${o.tier} club</span></span>
+        <span class="choice-stat">Sign</span></button>`);
+      card.onclick = () => {
+        g.club = { name: o.name, tier: o.tier };
+        g.totals.clubsPlayedFor = (g.totals.clubsPlayedFor || 1) + 1;
+        g.player.morale = T.clamp(g.player.morale + 10, 0, 100);
+        g._offers = [];
+        T.save();
+        UI.show("hub");
+      };
+      list.appendChild(card);
+    });
+    wrap.querySelector("#stay").onclick = () => {
+      g.player.morale = T.clamp(g.player.morale + (T.hasPerk("loyal") ? 8 : 3), 0, 100);
+      g._offers = [];
+      T.save();
+      UI.show("hub");
+    };
     return wrap;
   };
 

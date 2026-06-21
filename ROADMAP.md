@@ -35,6 +35,19 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] **Career-score competition**: local Hall of Fame leaderboard, shareable
       career codes (import a friend's to rank against them), and a Daily Challenge
       (deterministic shared start). See state.js + UI halloffame/glossary/startDaily.
+- [x] **Live game-by-game season playback**: watch a scrolling match feed with live
+      league position & points, Pause / Fast / Skip controls, and the broadcast
+      INTERRUPTS for each key moment (tied to its real fixture & scoreline), then
+      resumes. See UI.playSeason / seasonTick / revealRound.
+- [x] **8 mini-games** with attribute-scaled difficulty + on-screen impact readout:
+      added Sprint Duel (mash), Free Kick (bend over the wall), Power Header (apex
+      timing) on top of timing/aim/reaction/dribble/1-on-1.
+- [x] **Transfers between clubs**: post-season offers from bigger clubs (transfer
+      screen) + promotion/relegation by finish. `Prog.generateOffers/applyClubMovement`.
+- [x] **Awards & national call-ups**: Golden Boot, Player/Team of the Season, Young
+      Player, one-time National Call-Up — shown on results, fed into legacy.
+- [x] **Context-aware moments**: cup-final/penalty scenarios only appear on a cup-run
+      season; the final lands last.
 
 ---
 
@@ -54,19 +67,17 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 - [x] **Scenario context & consequences**: key moments show a competition badge, your
       club vs a generated opponent, the stakes, per-choice career impact, and an effect-
       chip breakdown of the outcome. Outcomes scale by stakes (final swings > league).
-- [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
-      bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
-- [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
-      Increment `totals.awards`; surface in results + legacy.
-- [x] Grow the **key-moment pool** to 8 football-true FWD scenarios; all tied to a
+- [x] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
+      bigger clubs (transfer screen); finish drives promotion/relegation.
+- [x] **Awards & call-ups**: Golden Boot, Player/Team of the Season, Young Player,
+      one-time National Call-Up. `totals.awards`; shown in results + fed to legacy.
+- [x] Grow the **key-moment pool** to 10 football-true FWD scenarios; all tied to a
       match with goal/assist effects. Fixed the `composure`-stat bug (FWDs lack it).
-- [x] More **mini-game types**: added Dribble Dodge (lane weaving) and One-on-One
-      (beat the onrushing keeper) — now 5 total. See `minigames.js`.
+- [x] More **mini-game types**: 8 total (timing/aim/reaction/dribble/1-on-1 + sprint
+      duel / free kick / power header), each attribute-scaled. See `minigames.js`.
 - [x] Wire **perks into math** (clutch / bigGame / leader / glassCannon / engine /
       ironMan / wonderkid all hooked).
-- [ ] Context-aware moment selection (finals only during a cup run / late season).
-- [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
-      bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
+- [x] Context-aware moment selection (cup final/penalty only during a cup run).
 - [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
 
 ---

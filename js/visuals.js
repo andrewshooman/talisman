@@ -296,15 +296,17 @@
   };
 
   // ---- Game-by-game match list ---------------------------------------
-  // matches: [{ rd, opp, home, my, op, res, pg, pa, rating, missed, key }]
-  V.matchList = function (matches) {
-    return `<div class="matchlist">` + matches.map(m => `
-      <div class="match-row ${m.missed ? "dnp" : ""} ${m.key ? "key" : ""}">
+  // m: { rd, opp, home, my, op, res, pg, pa, missed, key }
+  V.matchRow = function (m) {
+    return `<div class="match-row ${m.missed ? "dnp" : ""} ${m.key ? "key" : ""}">
         <span class="md">R${m.rd}</span>
         <span>${m.home ? "vs " : "@ "}${m.opp}${m.key ? " ⭐" : ""}</span>
         <span class="score">${m.my}–${m.op}</span>
-        <span class="ga">${m.missed ? "DNP" : ((m.pg ? m.pg + "G " : "") + (m.pa ? m.pa + "A" : "") || "·") }
+        <span class="ga">${m.missed ? "DNP" : ((m.pg ? m.pg + "G " : "") + (m.pa ? m.pa + "A" : "") || "·")}
           <span class="res-badge res-${m.res}">${m.res}</span></span>
-      </div>`).join("") + `</div>`;
+      </div>`;
+  };
+  V.matchList = function (matches) {
+    return `<div class="matchlist">` + matches.map(V.matchRow).join("") + `</div>`;
   };
 })();

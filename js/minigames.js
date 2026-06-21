@@ -334,6 +334,135 @@
   };
 
   // ---------------------------------------------------------------
+  // 6) SPRINT DUEL — mash RUN to outpace the defender. The defender's
+  //    bar auto-fills; a higher Pace slows him, so the race is easier.
+  //    Good for: pace bursts, beating the offside line.
+  // ---------------------------------------------------------------
+  MG._games.sprintDuel = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const defRate = 0.58 - (stat / 99) * 0.34;  // %/frame; lower (easier) if fast
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Outsprint the defender — tap <b>RUN</b> as fast as you can!</div>
+        <div class="duel"><div class="duel-bar you" id="you"></div></div>
+        <div class="duel"><div class="duel-bar def" id="def"></div></div>
+        <button class="btn primary react" id="run">RUN!</button>
+      </div>`;
+    const youEl = host.querySelector("#you"), defEl = host.querySelector("#def");
+    let you = 0, def = 0, done = false;
+    const finish = () => {
+      if (done) return; done = true; stopLoop();
+      const skill = T.clamp((you - def) / 100 + 0.5, 0, 1);
+      const text = you >= 100 ? (def < 70 ? "Burned him for pace!" : "Just got there first.") : "Caught by the defender.";
+      flash(youEl, skill);
+      onDone({ skill, text });
+    };
+    (function loop() {
+      def += defRate; defEl.style.width = Math.min(def, 100) + "%";
+      if (def >= 100) return finish();
+      _raf = requestAnimationFrame(loop);
+    })();
+    host.querySelector("#run").onclick = () => {
+      if (done) return;
+      you += 6; youEl.style.width = Math.min(you, 100) + "%";
+      if (you >= 100) finish();
+    };
+  };
+
+  // ---------------------------------------------------------------
+  // 7) FREE KICK — two-tap aim (direction, then height) to bend it
+  //    around the WALL and past the keeper into the gold corner.
+  //    Higher stat = a more forgiving target. Good for: finishing/set-pieces.
+  // ---------------------------------------------------------------
+  MG._games.freeKick = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const tx = T.rng() < 0.5 ? 14 : 86, ty = 20;
+    const sweep = 1.25 - (stat / 99) * 0.45;
+    const tol = 60 + (stat / 99) * 30;        // higher stat -> bigger forgiveness
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Bend it over the wall — tap to set <b>aim →</b> then <b>height ↑</b>.</div>
+        <div class="goal" id="goal">
+          <div class="keeper" id="keeper"></div>
+          <div class="fk-wall"></div>
+          <div class="target" style="left:${tx}%;top:${ty}%"></div>
+          <div class="aim-x" id="ax"></div>
+          <div class="aim-y" id="ay" style="display:none"></div>
+          <div class="ball" id="ball" style="display:none"></div>
+        </div>
+        <button class="btn primary" id="lock">LOCK AIM</button>
+      </div>`;
+    const ax = host.querySelector("#ax"), ay = host.querySelector("#ay");
+    const ball = host.querySelector("#ball"), keeper = host.querySelector("#keeper");
+    const lockBtn = host.querySelector("#lock");
+    let phase = 0, xp = 0, xd = 1, yp = 0, yd = 1, lockedX = 50, lockedY = 50;
+    (function loop() {
+      if (phase === 0) { xp += xd * sweep; if (xp >= 100 || xp <= 0) xd *= -1; ax.style.left = T.clamp(xp, 0, 100) + "%"; }
+      else if (phase === 1) { yp += yd * sweep * 0.9; if (yp >= 100 || yp <= 0) yd *= -1; ay.style.top = T.clamp(yp, 0, 100) + "%"; }
+      _raf = requestAnimationFrame(loop);
+    })();
+    lockBtn.onclick = () => {
+      if (phase === 0) {
+        lockedX = T.clamp(xp, 0, 100); phase = 1; ax.style.left = lockedX + "%"; ax.classList.add("locked");
+        ay.style.display = "block"; lockBtn.textContent = "LOCK HEIGHT";
+      } else if (phase === 1) {
+        lockedY = T.clamp(yp, 0, 100); phase = 2; stopLoop(); ay.style.top = lockedY + "%"; ay.classList.add("locked");
+        const keeperX = 50 + T.rand(-16, 16); keeper.style.left = keeperX + "%";
+        ball.style.display = "block"; ball.style.left = lockedX + "%"; ball.style.top = lockedY + "%";
+        const inWall = lockedX > 34 && lockedX < 66 && lockedY > 58;
+        const dKeeper = Math.hypot(lockedX - keeperX, lockedY - 55);
+        let skill = T.clamp(1 - Math.hypot(lockedX - tx, lockedY - ty) / tol, 0, 1);
+        let text;
+        if (inWall) { skill *= 0.15; text = "Smashed into the wall!"; }
+        else if (dKeeper < 15) { skill *= 0.3; text = "Keeper tipped it away."; }
+        else if (skill > 0.8) text = "Whipped into the top corner!";
+        else if (skill > 0.5) text = "Good strike, on target.";
+        else text = "Dragged it off target.";
+        flash(ball, skill);
+        setTimeout(() => onDone({ skill, text }), 250);
+      }
+    };
+  };
+
+  // ---------------------------------------------------------------
+  // 8) POWER HEADER — a ball rises and falls on a vertical track; tap
+  //    HEAD at the apex (the gold zone). Higher stat = a taller zone.
+  //    Good for: aerial duels, attacking crosses.
+  // ---------------------------------------------------------------
+  MG._games.powerHeader = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const zoneH = 16 + (stat / 99) * 22;      // % height of the apex zone
+    const zoneTop = 6;                         // near the top
+    const speed = 1.5 - (stat / 99) * 0.4;
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Meet it at the peak — tap <b>HEAD</b> in the gold zone</div>
+        <div class="vtrack">
+          <div class="vzone" style="top:${zoneTop}%;height:${zoneH}%"></div>
+          <div class="vmarker" id="vm"></div>
+        </div>
+        <button class="btn primary" id="head">HEAD</button>
+      </div>`;
+    const vm = host.querySelector("#vm");
+    let pos = 100, dir = -1, done = false;     // start low, rise up
+    (function loop() {
+      pos += dir * speed; if (pos <= 0) { pos = 0; dir = 1; } if (pos >= 100) { pos = 100; dir = -1; }
+      vm.style.top = pos + "%";
+      _raf = requestAnimationFrame(loop);
+    })();
+    host.querySelector("#head").onclick = () => {
+      if (done) return; done = true; stopLoop();
+      const center = zoneTop + zoneH / 2, dist = Math.abs(pos - center), half = zoneH / 2;
+      let skill, text;
+      if (dist <= half * 0.4) { skill = T.rand(0.9, 1); text = "Towering header — perfect contact!"; }
+      else if (dist <= half) { skill = T.clamp(0.8 - (dist / half) * 0.3, 0.5, 0.8); text = "Got good height on it."; }
+      else { skill = T.clamp(0.4 - (dist - half) / 50, 0, 0.4); text = "Couldn't get over it."; }
+      flash(vm, skill);
+      onDone({ skill, text });
+    };
+  };
+
+  // ---------------------------------------------------------------
   // SVG stadium scenes (visual backdrop above the game).
   // ---------------------------------------------------------------
   MG.scene = function (kind) {

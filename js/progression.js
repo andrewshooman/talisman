@@ -112,6 +112,7 @@
     t.assists += record.assists;
     t.cleanSheets += record.cleanSheets || 0;
     t.trophies += record.trophies.length;
+    t.awards += (record.awards ? record.awards.length : 0);
     if (record.rating > t.peakRating) t.peakRating = record.rating;
 
     g.history.push(record);
@@ -132,6 +133,34 @@
     return { levelsGained };
   };
 
-  // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.
-  Prog.generateOffers = function () { return []; };
+  // Promotion / relegation for the player's current club based on finish.
+  // Returns "promoted" | "relegated" | null and mutates g.club.tier.
+  Prog.applyClubMovement = function (record) {
+    const g = T.game;
+    if (record.finish === 1 && g.club.tier < 5) { g.club.tier++; return "promoted"; }
+    if (record.finish >= 18 && g.club.tier > 1) { g.club.tier--; return "relegated"; }
+    return null;
+  };
+
+  // Transfer offers from BIGGER clubs after a strong season. Returns
+  // [{ name, tier }]. Bigger/more offers the better you played.
+  Prog.generateOffers = function (record) {
+    const g = T.game;
+    const tier = g.club.tier;
+    if (tier >= 5) return []; // already at the top
+
+    let rep = (record.rating - 6.5) * 4 + record.goals * 0.25 +
+      (record.awards ? record.awards.length * 3 : 0) + (5 - tier);
+    if (T.hasPerk("mercenary")) rep += 4;
+    if (T.hasPerk("loyal")) rep -= 2;
+
+    const target = T.clamp(tier + (rep > 13 ? 2 : 1), tier + 1, 5);
+    const tiers = [];
+    for (let tt = target; tt > tier && tiers.length < 3; tt--) tiers.push(tt);
+
+    const n = T.clamp(rep > 11 ? 3 : rep > 7 ? 2 : rep > 4 ? 1 : 0, 0, tiers.length);
+    const offers = [];
+    for (let i = 0; i < n; i++) offers.push({ name: T.randomClubName(), tier: tiers[i] });
+    return offers;
+  };
 })();

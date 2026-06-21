@@ -165,6 +165,32 @@ T.game = {
 - **Cache-busting**: index.html asset URLs carry `?v=<VERSION>`. BUMP this when you
   change CSS/JS or the preview/deploy may serve stale files (we hit this in testing).
 
+## Live playback, more mini-games, transfers & awards (v0.5)
+
+- **Live season playback** (ui.js): `playSeason()` builds the season then
+  `renderSeasonScreen()` + `seasonTick()` reveal matchdays one at a time into a
+  scrolling `#feed`, updating a live table via `League.computeTable(teams, matches, maxRd)`.
+  `UI.season` holds `{season, roundMoment, round, playing, speed, feed, dom}`. At a key
+  round, `seasonTick` calls `renderMoment` (interrupt); the done callback reveals the
+  (now moment-adjusted) result and resumes. Controls: Pause/Play, Fast (cycles speed),
+  Skip (speed→0). `finishSeasonPlayback()` finalizes + handles movement/offers.
+- **Mini-games**: now 8 in `MG._games` — timingBar, aimTarget, reactionTap, dribbleDodge,
+  oneOnOne, **sprintDuel** (mash vs defender), **freeKick** (aim around a wall), **powerHeader**
+  (vertical apex timing). Every game scales difficulty from `opts.statVal` (zone width,
+  speed, window, mash rate). `playMomentGame` shows a stat chip + "makes this {tough→
+  much easier}" so the attribute→difficulty link is visible; resolve() also uses the stat,
+  so the same attribute drives BOTH difficulty and success rate.
+- **Awards** (engine.finalizeSeason): `record.awards[]` from goals/rating/finish/age;
+  one-time National Call-Up sets `player.international`. `advanceSeason` adds to
+  `totals.awards`. Shown on results; legacy already weights awards.
+- **Transfers** (progression.js): `applyClubMovement(record)` promotes (finish 1) /
+  relegates (finish ≥18) the current club's tier; `generateOffers(record)` returns bigger-
+  club offers scaled by a reputation score (mercenary +, loyal −). Flow: results Continue →
+  perk picks → `UI.screens.transfer` (sign = new club+tier, clubsPlayedFor++; or Stay) → hub.
+- **Context-aware moments** (moments.js): `pickSeason(n, {cupRun})` filters out CUP/FINAL
+  scenarios unless `season.cupRun` (set in runSeason from club strength); the final lands
+  last. Cup trophy also gated on `cupRun`.
+
 ## Tuning log (append each pass — most recent first)
 
 - _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`
