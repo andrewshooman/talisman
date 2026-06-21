@@ -75,6 +75,12 @@
     if (finish === 1) trophies.push("League Title");
     if (T.rng() < (quality - 55) / 120) trophies.push("Cup");
 
+    // Synthesize per-match ratings around the average (for a form sparkline).
+    const matchRatings = [];
+    for (let i = 0; i < apps; i++) {
+      matchRatings.push(+T.clamp(rating + T.rand(-1.6, 1.6), 4, 10).toFixed(1));
+    }
+
     return {
       season: g.season,
       age: p.age,
@@ -84,6 +90,7 @@
       rating,
       finish,
       trophies,
+      matchRatings,
       cleanSheets: 0, // FWD: n/a (kept for schema parity)
       keyMoments: [], // filled by moments.js if a moment season
     };

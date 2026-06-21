@@ -23,6 +23,9 @@ Load order is fixed in `index.html`:
 ```
 data.js  -> constants only (no logic)
 state.js -> T.game, newGame(), save/load, RNG, overall(), hasPerk()
+visuals.js -> T.Vis: procedural SVG art (crest, kit, flag, radar, ring,
+              trophy, sparkline, leaguePos, playerCard). Deterministic
+              from a seed string (same club name => same crest/kit colors).
 engine.js  -> T.Engine: simSeason(), teamQuality(), leagueFinish()
 minigames.js -> T.Minigames: run(host,opts,onDone), scene(kind) — skill games
 moments.js -> T.Moments: POOL_FWD, resolve(choice, skill), pickSeason()
@@ -91,6 +94,22 @@ T.game = {
   expected; it animates fine on a visible page. Don't "fix" the frozen-marker symptom.
 - To add a game type: add to `MG._games`, render into `host`, call `onDone({skill,text})`,
   and add matching CSS in styles.css. Always honor the rAF cleanup (`stopLoop`).
+
+## Visuals (visuals.js)
+
+- Every screen uses procedural SVG so it reads like a game, not a quiz:
+  title hero, FUT-style **player card** (OVR + position + flag + kit + crest),
+  **radar** stat chart on the hub, **rings** for fitness/morale/rating/legacy,
+  **league-position ladder** + **form sparkline** on results, **trophy cabinet**
+  + crest **timeline** on retirement, live **card preview** on create.
+- All art is deterministic from a string seed via `V.palette(seed)` (hashed hue),
+  so a club's crest/kit colors are stable. Player gets `player.number` (state.js).
+- The engine adds `record.matchRatings` (synthesized per-match ratings) purely to
+  drive the sparkline; it does not affect the season average.
+- Backward-compatible with old saves: `playerCard` defaults number to 9 and the
+  sparkline guards empty arrays, so pre-0.2.0 saves still render.
+- To add art: add a `V.fn` returning an SVG/HTML string + matching CSS class in
+  styles.css. Use CSS vars for color; only seed-derived kit/crest/flag use inline hsl.
 
 ## Tuning log (append each pass — most recent first)
 

@@ -24,6 +24,10 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] **Interactive key moments**: SVG stadium scenes + skill mini-games
       (`minigames.js`: timingBar / aimTarget / reactionTap). Skill (0..1)
       blends into the stat roll. Moment pool grown to 6 FWD scenarios.
+- [x] **Visual identity** (`visuals.js`): procedural player card, club crests,
+      jersey kits, nation flags, radar stat chart, rating/fitness rings,
+      league-position ladder, season form sparkline, trophy cabinet. Every
+      screen now reads like a game rather than a text menu.
 
 ---
 
