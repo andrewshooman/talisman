@@ -53,6 +53,7 @@
         name: opts.name || T.randomPlayerName(),
         nation: opts.nation || T.pick(T.NATIONS),
         position: pos,
+        number: T.pick([7, 9, 10, 11, 19]), // striker squad numbers
         age: T.START_AGE,
         stats,
         form: 0,          // -10..+10, volatile each season

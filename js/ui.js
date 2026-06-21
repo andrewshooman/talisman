@@ -36,10 +36,10 @@
   UI.screens.title = function () {
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div style="height:8vh"></div>
+      <div style="height:4vh"></div>
       <div class="brand pop-in">TALISMAN</div>
       <div class="tagline">Live a striker's whole career.</div>
-      <div style="height:4vh"></div>
+      <div class="hero">${T.Minigames.scene("goal")}</div>
       <div class="col">
         <button class="btn primary" id="new">New Career</button>
         ${T.hasSave() ? `<button class="btn" id="continue">Continue</button>` : ``}
@@ -55,11 +55,12 @@
 
   // ---- Player creation (FWD) -----------------------------------------
   UI.screens.create = function () {
-    const draft = { name: "", nation: T.NATIONS[0], position: "FWD", clubTier: 2 };
+    const draft = { name: "", nation: T.NATIONS[0], position: "FWD", clubTier: 2, clubName: T.randomClubName(), number: 9 };
     const wrap = el(`<div class="col"></div>`);
 
     wrap.innerHTML = `
       <h2>Create your striker</h2>
+      <div id="cardPreview"></div>
       <div class="card col">
         <div class="field">
           <label>Name</label>
@@ -68,6 +69,14 @@
         <div class="field">
           <label>Nation</label>
           <select id="nation">${T.NATIONS.map(n => `<option>${n}</option>`).join("")}</select>
+        </div>
+        <div class="field">
+          <label>Club</label>
+          <div class="row" style="gap:8px">
+            <div class="crest-inline" id="clubCrest"></div>
+            <b id="clubName" class="grow"></b>
+            <button class="btn ghost" id="rerollClub" style="width:auto;min-height:40px;padding:0 14px">↻</button>
+          </div>
         </div>
         <div class="field">
           <label>Position</label>
@@ -91,12 +100,32 @@
       <button class="btn ghost" id="back">Back</button>
     `;
 
+    // Live preview card + club identity, updates as the draft changes.
+    const updateCard = () => {
+      const base = 40 + draft.clubTier * 2;
+      const keys = T.POSITIONS[draft.position].stats;
+      const stats = {}; keys.forEach(k => stats[k] = base);
+      const previewPlayer = {
+        name: (wrap.querySelector("#name").value.trim()) || "New Striker",
+        nation: draft.nation, position: draft.position, number: draft.number, age: 17, stats,
+      };
+      wrap.querySelector("#cardPreview").innerHTML =
+        T.Vis.playerCard(previewPlayer, { name: draft.clubName }, base);
+      wrap.querySelector("#clubName").textContent = draft.clubName;
+      wrap.querySelector("#clubCrest").innerHTML = T.Vis.crest(draft.clubName, 30);
+    };
+
     const setTierLabel = () => {
       const v = T.CLUB_TIERS[draft.clubTier];
       wrap.querySelector("#tierLabel").textContent =
         `${v.label} · legacy ×${v.legacyMult}`;
     };
     setTierLabel();
+    updateCard();
+
+    wrap.querySelector("#name").oninput = updateCard;
+    wrap.querySelector("#nation").onchange = (e) => { draft.nation = e.target.value; updateCard(); };
+    wrap.querySelector("#rerollClub").onclick = () => { draft.clubName = T.randomClubName(); updateCard(); };
 
     wrap.querySelector("#pos").querySelectorAll(".opt").forEach(opt => {
       opt.onclick = () => {
@@ -104,6 +133,7 @@
         wrap.querySelectorAll("#pos .opt").forEach(o => o.classList.remove("active"));
         opt.classList.add("active");
         draft.position = opt.dataset.k;
+        updateCard();
       };
     });
     wrap.querySelector("#tier").querySelectorAll(".opt").forEach(opt => {
@@ -112,6 +142,7 @@
         opt.classList.add("active");
         draft.clubTier = +opt.dataset.k;
         setTierLabel();
+        updateCard();
       };
     });
 
@@ -131,34 +162,31 @@
     const g = T.game, p = g.player;
     const wrap = el(`<div class="col"></div>`);
 
+    const keys = T.POSITIONS[p.position].stats;
     wrap.innerHTML = `
-      <div class="row between">
-        <div>
-          <h2>${p.name}</h2>
-          <div class="muted">${T.POSITIONS[p.position].label} · ${p.nation} · age ${p.age}</div>
-        </div>
-        <div class="pill gold">OVR ${T.overall()}</div>
-      </div>
+      ${T.Vis.playerCard(p, g.club, T.overall())}
 
       <div class="card row between">
-        <div><div class="muted" style="font-size:12px">Club</div><b>${g.club.name}</b></div>
-        <div class="pill">Tier ${g.club.tier}</div>
-        <div><div class="muted" style="font-size:12px">Season</div><b>#${g.season}</b></div>
+        <div class="row" style="gap:8px"><div class="crest-inline">${T.Vis.crest(g.club.name, 28)}</div>
+          <div><div class="muted" style="font-size:11px">Club · Tier ${g.club.tier}</div><b>${g.club.name}</b></div></div>
+        <div class="center"><div class="muted" style="font-size:11px">Season</div><b>#${g.season}</b></div>
       </div>
 
       <div class="card">
-        <div class="row between" style="margin-bottom:8px">
+        <div class="row between" style="margin-bottom:4px">
           <b>Attributes</b>
           <span class="muted" style="font-size:12px">${p.trainingPoints} training pts</span>
         </div>
-        ${T.POSITIONS[p.position].stats.map(k => statBar(k, p.stats[k])).join("")}
+        <div class="radar-wrap">${T.Vis.radar(p.stats, keys, 240)}</div>
       </div>
 
-      <div class="card row between">
-        ${chip("Form", (p.form >= 0 ? "+" : "") + p.form)}
-        ${chip("Morale", p.morale)}
-        ${chip("Fitness", p.fitness)}
-        ${chip("Level", p.level)}
+      <div class="card ring-row">
+        ${T.Vis.ring(p.fitness, 100, "Fitness", 84)}
+        ${T.Vis.ring(p.morale, 100, "Morale", 84)}
+        <div class="center">
+          <div class="pill ${p.form >= 0 ? 'gold' : ''}">Form ${(p.form >= 0 ? "+" : "") + p.form}</div>
+          <div class="muted" style="font-size:12px;margin-top:8px">Level ${p.level}</div>
+        </div>
       </div>
 
       ${p.perks.length ? `<div class="card"><b>Perks</b><div class="row" style="flex-wrap:wrap;margin-top:8px">
@@ -273,18 +301,38 @@
   UI.renderResults = function (record, careerEnded) {
     const wrap = el(`<div class="col"></div>`);
     const trophyHtml = record.trophies.length
-      ? `<div class="card center pop-in"><b class="gold" style="font-size:18px">🏆 ${record.trophies.join(" · ")}</b></div>`
+      ? `<div class="card center pop-in"><div class="cabinet" style="justify-content:center">
+          ${record.trophies.map(tn => `<div class="trophy-item">${T.Vis.trophy(tn === "Cup" ? "cup" : "cup")}<span>${tn}</span></div>`).join("")}
+        </div></div>`
       : ``;
     wrap.innerHTML = `
-      <h2>Season #${record.season} · age ${record.age}</h2>
-      <div class="muted">${record.club} · finished ${ordinal(record.finish)}</div>
-      ${trophyHtml}
-      <div class="card row between">
-        ${chip("Apps", record.apps)}
-        ${chip("Goals", record.goals)}
-        ${chip("Assists", record.assists)}
-        ${chip("Avg", record.rating)}
+      <div class="row" style="gap:10px;align-items:center">
+        <div class="crest-inline">${T.Vis.crest(record.club, 40)}</div>
+        <div><h2 style="margin:0">Season #${record.season}</h2>
+          <div class="muted">${record.club} · age ${record.age}</div></div>
       </div>
+
+      <div class="card ring-row">
+        ${T.Vis.ring(record.rating, 10, "Avg rating", 96)}
+        <div class="col center" style="gap:2px">
+          <div class="row" style="gap:14px">
+            ${chip("Apps", record.apps)}${chip("Goals", record.goals)}${chip("Assists", record.assists)}
+          </div>
+        </div>
+      </div>
+
+      ${trophyHtml}
+
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:6px">League</div>
+        ${T.Vis.leaguePos(record.finish)}
+      </div>
+
+      <div class="card">
+        <div class="muted" style="font-size:12px;margin-bottom:4px">Season form (per match rating)</div>
+        ${T.Vis.sparkline(record.matchRatings)}
+      </div>
+
       ${careerEnded ? `<div class="card center"><b class="gold">A serious injury has ended your career.</b></div>` : ``}
       <button class="btn primary" id="cont">${careerEnded ? "See Legacy" : "Continue"}</button>
     `;
@@ -298,35 +346,46 @@
     const g = T.game, t = g.totals;
     const L = T.Legacy.compute();
     const wrap = el(`<div class="col"></div>`);
+    // Build the trophy cabinet from history.
+    const cabinet = [];
+    g.history.forEach(h => (h.trophies || []).forEach(tn => cabinet.push(tn)));
+    const cabinetHtml = cabinet.length
+      ? cabinet.map(tn => `<div class="trophy-item">${T.Vis.trophy("cup")}<span>${tn}</span></div>`).join("")
+      : `<span class="muted">No silverware — but a story all the same.</span>`;
+
     wrap.innerHTML = `
       <div class="center">
         <div class="muted">FINAL TIER</div>
         <div class="brand pop-in" style="font-size:30px">${L.tier.toUpperCase()}</div>
-        <div class="pill gold" style="font-size:16px">Legacy ${L.score.toLocaleString()}</div>
+      </div>
+      <div class="card ring-row">
+        ${T.Vis.ring(Math.min(L.score, 9999), 4000, "Legacy", 120)}
+        <div class="center">
+          <div class="pill gold" style="font-size:18px">${L.score.toLocaleString()}</div>
+          <div class="muted" style="font-size:12px;margin-top:6px">difficulty ×${L.breakdown.diffMult}</div>
+        </div>
+      </div>
+
+      ${T.Vis.playerCard(g.player, g.club, t.peakRating ? Math.round(t.peakRating * 10) : T.overall())}
+      <div class="muted center" style="font-size:12px">${g.history.length} seasons · retired at ${g.player.age}</div>
+
+      <div class="card row between">
+        ${chip("Apps", t.apps)}${chip("Goals", t.goals)}${chip("Assists", t.assists)}
+        ${chip("Trophies", t.trophies)}${chip("Peak", t.peakRating)}
       </div>
 
       <div class="card">
-        <b>${g.player.name}</b> · ${T.POSITIONS[g.player.position].label} · ${g.player.nation}
-        <div class="muted" style="margin-top:4px">${g.history.length} seasons · retired at ${g.player.age}</div>
-      </div>
-
-      <div class="card row between">
-        ${chip("Apps", t.apps)}
-        ${chip("Goals", t.goals)}
-        ${chip("Assists", t.assists)}
-      </div>
-      <div class="card row between">
-        ${chip("Trophies", t.trophies)}
-        ${chip("Awards", t.awards)}
-        ${chip("Peak", t.peakRating)}
+        <b>Trophy cabinet</b>
+        <div class="cabinet" style="margin-top:10px">${cabinetHtml}</div>
       </div>
 
       <div class="card">
         <b>Career timeline</b>
         <div class="col" style="margin-top:8px">
-          ${g.history.map(h => `<div class="row between" style="font-size:14px">
+          ${g.history.map(h => `<div class="tl-row">
+            <div class="crest-inline">${T.Vis.crest(h.club, 22)}</div>
             <span>S${h.season} · ${h.club}</span>
-            <span class="muted">${h.goals}G ${h.assists}A · ${h.rating}</span>
+            <span class="tl-meta">${h.goals}G ${h.assists}A · ${h.rating}${(h.trophies && h.trophies.length) ? " 🏆" : ""}</span>
           </div>`).join("") || `<span class="muted">No seasons played.</span>`}
         </div>
       </div>
