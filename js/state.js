@@ -24,6 +24,15 @@
   T.pick = (arr) => arr[Math.floor(T.rng() * arr.length)];
   T.clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+  // Knuth Poisson sampler (uses T.rng) — for match score lines.
+  T.poisson = function (lambda) {
+    if (lambda <= 0) return 0;
+    const L = Math.exp(-lambda);
+    let k = 0, p = 1;
+    do { k++; p *= T.rng(); } while (p > L);
+    return k - 1;
+  };
+
   // ---- The live game state -------------------------------------------
   // Single source of truth. UI reads from T.game; logic mutates it.
   T.game = null;
@@ -145,4 +154,44 @@
   };
 
   T.hasPerk = (id) => T.game && T.game.player.perks.includes(id);
+
+  // ---- Career score competition: Hall of Fame, daily seed, sharing ----
+  T.HOF_KEY = "talisman.hof.v1";
+
+  T.loadHOF = function () {
+    try { return JSON.parse(localStorage.getItem(T.HOF_KEY)) || []; }
+    catch (e) { return []; }
+  };
+  T.saveHOF = function (list) {
+    try { localStorage.setItem(T.HOF_KEY, JSON.stringify(list.slice(0, 50))); } catch (e) {}
+  };
+  // Add a finished career; returns { list, rank } (1-based rank by score).
+  T.addToHOF = function (entry) {
+    const list = T.loadHOF();
+    list.push(entry);
+    list.sort((a, b) => b.score - a.score);
+    T.saveHOF(list);
+    return { list, rank: list.findIndex(e => e === entry) + 1 };
+  };
+
+  // Daily seed: identical career start for everyone on a given calendar day.
+  T.todayKey = function () {
+    const d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  };
+  T.dailySeed = function () { return T.todayKey() >>> 0; };
+
+  // Shareable career codes (base64 of compact JSON) for comparing with friends.
+  T.encodeCareer = function (e) {
+    try { return btoa(unescape(encodeURIComponent(JSON.stringify(e)))); }
+    catch (err) { return ""; }
+  };
+  T.decodeCareer = function (s) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(String(s).trim())))); }
+    catch (err) { return null; }
+  };
+  T.shareText = function (e) {
+    return `TALISMAN — ${e.name}: ${e.tier} · ${e.score.toLocaleString()} pts · ` +
+      `${e.goals}G ${e.assists}A · ${e.trophies}🏆 over ${e.seasons} seasons. Can you beat it?`;
+  };
 })();

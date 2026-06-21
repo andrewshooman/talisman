@@ -369,6 +369,7 @@ input[type="text"], select {
   justify-content: center;
 }
 .mh-stakes { text-align: center; font-size: 13px; color: var(--text); }
+.mh-score { text-align: center; font-size: 14px; font-weight: 800; color: var(--gold); }
 
 /* Choice buttons (richer, with impact + stat) */
 .btn.choice-btn {
@@ -379,6 +380,82 @@ input[type="text"], select {
   flex: none; font-size: 12px; font-weight: 800; color: var(--gold);
   background: var(--bg-2); border: 1px solid var(--gold-dim);
   border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+}
+
+/* Dribble dodge mini-game */
+.dribble {
+  position: relative; height: 220px; border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line);
+  background: linear-gradient(0deg, #0f1f12, #0a160d);
+  display: flex;
+}
+.dd-lane { flex: 1; border-right: 1px dashed rgba(233,233,242,.08); }
+.dd-lane:last-child { border-right: none; }
+.dd-runner {
+  position: absolute; top: 76%; left: 50%;
+  margin-left: -10px; font-size: 22px; color: var(--gold);
+  transition: left .08s ease; text-shadow: 0 0 8px var(--gold);
+}
+.dd-def { position: absolute; margin-left: -10px; font-size: 22px; color: var(--pop); }
+
+/* One-on-one mini-game */
+.oo-track {
+  position: relative; height: 46px; border-radius: 10px; overflow: hidden;
+  background: var(--bg-3); border: 1px solid var(--line);
+}
+.oo-window {
+  position: absolute; top: 0; bottom: 0;
+  background: rgba(245,196,81,.28); border-left: 2px solid var(--gold); border-right: 2px solid var(--gold);
+}
+.oo-keeper { position: absolute; top: 8px; left: 0; margin-left: -12px; font-size: 22px; }
+
+/* League table */
+.ltable { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ltable th { color: var(--muted); font-weight: 700; text-align: right; padding: 4px 6px; font-size: 11px; }
+.ltable th:nth-child(2) { text-align: left; }
+.ltable td { padding: 5px 6px; text-align: right; border-top: 1px solid var(--line); }
+.ltable td:nth-child(2) { text-align: left; }
+.ltable .me { background: rgba(245,196,81,.12); }
+.ltable .me td { color: var(--gold); font-weight: 800; }
+.ltable .pos { color: var(--muted); }
+
+/* Game-by-game match list */
+.matchlist { display: flex; flex-direction: column; }
+.match-row {
+  display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: center;
+  padding: 7px 4px; border-top: 1px solid var(--line); font-size: 13px;
+}
+.match-row .md { color: var(--muted); font-size: 11px; }
+.match-row .score { font-weight: 800; font-variant-numeric: tabular-nums; }
+.match-row .ga { color: var(--muted); font-size: 12px; min-width: 52px; text-align: right; }
+.match-row.dnp { opacity: .45; }
+.match-row.key { background: rgba(245,196,81,.08); }
+.res-badge { width: 20px; height: 20px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; }
+.res-W { background: rgba(74,222,128,.2); color: var(--good); }
+.res-D { background: var(--bg-3); color: var(--muted); }
+.res-L { background: rgba(248,113,113,.2); color: var(--bad); }
+
+/* Hall of Fame */
+.hof-row {
+  display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center;
+  padding: 10px 8px; border-top: 1px solid var(--line);
+}
+.hof-row .rank { font-weight: 900; color: var(--muted); text-align: center; }
+.hof-row.top1 .rank { color: var(--gold); }
+.hof-row .who b { display: block; }
+.hof-row .score { text-align: right; font-weight: 800; color: var(--gold); }
+.hof-row .tier { font-size: 12px; color: var(--muted); }
+
+/* Glossary */
+.glos-item { padding: 12px 0; border-top: 1px solid var(--line); }
+.glos-item:first-child { border-top: none; }
+.glos-item b { color: var(--gold); }
+.glos-item p { margin: 4px 0 0; color: var(--text); font-size: 14px; line-height: 1.45; }
+
+/* code box for share */
+.codebox {
+  width: 100%; font-family: monospace; font-size: 12px; word-break: break-all;
+  background: var(--bg-3); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--muted);
 }
 
 /* Effect chips (key-moment result consequences) */

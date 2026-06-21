@@ -211,6 +211,129 @@
   };
 
   // ---------------------------------------------------------------
+  // 4) DRIBBLE DODGE — defenders rush up the pitch; tap LEFT/RIGHT to
+  //    weave through the gaps. Each one you slip past adds skill; a
+  //    collision ends the run. Higher stat = a touch more time to react.
+  //    Good for: taking a man on, driving at the defence.
+  // ---------------------------------------------------------------
+  MG._games.dribbleDodge = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const TOTAL = 6;                 // defenders to beat
+    const speed = 0.85 + (stat / 99) * 0.5; // px/frame the runner climbs feels faster w/ skill? keep dribble flowing
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Weave through — tap <b>◀</b> / <b>▶</b> to dodge each defender</div>
+        <div class="dribble" id="pitch">
+          <div class="dd-lane"></div><div class="dd-lane"></div><div class="dd-lane"></div>
+          <div class="dd-runner" id="run">●</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn step" id="left" style="flex:1;width:auto">◀</button>
+          <button class="btn step" id="right" style="flex:1;width:auto">▶</button>
+        </div>
+        <div class="mg-hint" id="ddinfo">Beaten: 0 / ${TOTAL}</div>
+      </div>`;
+
+    const pitch = host.querySelector("#pitch");
+    const runner = host.querySelector("#run");
+    const info = host.querySelector("#ddinfo");
+    const laneX = [16, 50, 84];      // % positions of 3 lanes
+    let lane = 1;                    // runner starts centre
+    let beaten = 0, done = false;
+    let def = null;                  // current defender {el, lane, y}
+    const place = () => { runner.style.left = laneX[lane] + "%"; };
+    place();
+
+    const spawn = () => {
+      const dl = T.randInt(0, 2);
+      const el2 = document.createElement("div");
+      el2.className = "dd-def";
+      el2.textContent = "▾";
+      el2.style.left = laneX[dl] + "%";
+      el2.style.top = "-12%";
+      pitch.appendChild(el2);
+      def = { el: el2, lane: dl, y: -12 };
+    };
+    spawn();
+
+    const finish = () => {
+      done = true; stopLoop();
+      const skill = T.clamp(beaten / TOTAL, 0, 1);
+      const text = skill >= 0.99 ? "Mazy run — beat them all!" : skill >= 0.6 ? "Skipped through midfield." : "Crowded out.";
+      onDone({ skill, text });
+    };
+
+    (function loop() {
+      if (def) {
+        def.y += speed;
+        def.el.style.top = def.y + "%";
+        // collision zone around the runner's row (~78%)
+        if (def.y >= 72 && def.y <= 86) {
+          if (def.lane === lane) { flash(runner, 0); return finish(); }
+        }
+        if (def.y > 100) {
+          pitch.removeChild(def.el);
+          beaten++; info.textContent = `Beaten: ${beaten} / ${TOTAL}`;
+          if (beaten >= TOTAL) { flash(runner, 1); return finish(); }
+          def = null; spawn();
+        }
+      }
+      _raf = requestAnimationFrame(loop);
+    })();
+
+    host.querySelector("#left").onclick = () => { if (!done) { lane = Math.max(0, lane - 1); place(); } };
+    host.querySelector("#right").onclick = () => { if (!done) { lane = Math.min(2, lane + 1); place(); } };
+  };
+
+  // ---------------------------------------------------------------
+  // 5) ONE-ON-ONE — the keeper rushes out, closing the angle. A green
+  //    "shoot window" appears as he commits; tap SHOOT inside it. Too
+  //    early and he blocks; too late and he smothers. Higher stat
+  //    widens the window. Good for: rounding/beating the keeper.
+  // ---------------------------------------------------------------
+  MG._games.oneOnOne = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const winW = 18 + (stat / 99) * 20;          // window width %
+    const winStart = T.clamp(46 + T.rand(-8, 14), 30, 100 - winW - 4);
+    const speed = 0.7;                            // keeper closing speed
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">The keeper rushes out — tap <b>SHOOT</b> as the gold window opens</div>
+        <div class="oo-track">
+          <div class="oo-window" style="left:${winStart}%;width:${winW}%"></div>
+          <div class="oo-keeper" id="kp">🧤</div>
+        </div>
+        <button class="btn primary" id="shoot">SHOOT</button>
+      </div>`;
+    const kp = host.querySelector("#kp");
+    let pos = 0, done = false;
+    (function loop() {
+      pos += speed;
+      kp.style.left = pos + "%";
+      if (pos >= 100) {       // keeper closed you down
+        if (!done) { done = true; stopLoop(); flash(kp, 0); onDone({ skill: 0.1, text: "Dithered — keeper smothered it." }); }
+        return;
+      }
+      _raf = requestAnimationFrame(loop);
+    })();
+    host.querySelector("#shoot").onclick = () => {
+      if (done) return; done = true; stopLoop();
+      const center = winStart + winW / 2;
+      const dist = Math.abs(pos - center);
+      let skill, text;
+      if (pos >= winStart && pos <= winStart + winW) {
+        skill = T.clamp(1 - dist / (winW), 0.6, 1); text = "Perfect — slotted past him!";
+      } else if (pos < winStart) {
+        skill = T.clamp(0.4 - (winStart - pos) / 60, 0, 0.4); text = "Too early — he blocked it.";
+      } else {
+        skill = T.clamp(0.4 - (pos - winStart - winW) / 60, 0, 0.4); text = "Left it late — he got a touch.";
+      }
+      flash(kp, skill);
+      onDone({ skill, text });
+    };
+  };
+
+  // ---------------------------------------------------------------
   // SVG stadium scenes (visual backdrop above the game).
   // ---------------------------------------------------------------
   MG.scene = function (kind) {
