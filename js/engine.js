@@ -24,6 +24,38 @@
     return T.clamp(q, 20, 99);
   };
 
+  // Deterministic, noise-free projection of a season for a given stat set.
+  // Powers the Train screen so the player can SEE how stat changes move their
+  // expected output. Same formulas as simSeason() with randomness removed.
+  Engine.projectSeason = function (statsOverride) {
+    const g = T.game, p = g.player, TUNE = T.TUNING;
+    const s = statsOverride || p.stats;
+    const keys = T.POSITIONS[p.position].stats;
+    const ovr = Math.round(keys.reduce((a, k) => a + s[k], 0) / keys.length);
+
+    let quality = T.CLUB_TIERS[g.club.tier].base * 0.85 + ovr * 0.15;
+    if (T.hasPerk("leader")) quality += 3;
+    quality = T.clamp(quality, 20, 99);
+
+    const formMul = 1 + p.form / 40;
+    const fitMul = 0.7 + (p.fitness / 100) * 0.3;
+    const apps = Math.round(T.clamp(T.SEASON_GAMES * (p.fitness / 100), 8, 38));
+    const attackFactor = 0.7 + (quality / 99) * 0.5;
+
+    let xg = ((s.finishing * 0.5 + s.positioning * 0.3 + s.pace * 0.2) / 99) *
+      TUNE.MAX_GOALS * formMul * fitMul * attackFactor;
+    if (T.hasPerk("glassCannon")) xg *= 1.12;
+    const goals = Math.round(T.clamp(xg, 0, TUNE.MAX_GOALS + 5));
+
+    const assists = Math.round(T.clamp(((s.dribbling * 0.6 + s.positioning * 0.4) / 99) *
+      TUNE.MAX_ASSISTS * formMul * attackFactor, 0, TUNE.MAX_ASSISTS + 4));
+
+    const contrib = (goals + assists * 0.7) / Math.max(apps, 1);
+    const rating = +T.clamp(6.0 + contrib * 1.6 + p.form * 0.02, 4, 9.9).toFixed(1);
+
+    return { ovr, goals, assists, rating };
+  };
+
   // Map team quality -> final league position (1..20).
   Engine.leagueFinish = function (quality) {
     // Higher quality -> lower (better) position. Add noise.

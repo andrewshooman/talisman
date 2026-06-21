@@ -111,6 +111,29 @@ T.game = {
 - To add art: add a `V.fn` returning an SVG/HTML string + matching CSS class in
   styles.css. Use CSS vars for color; only seed-derived kit/crest/flag use inline hsl.
 
+## Training, progression & scenario context (RPG loop)
+
+- **Train screen** (`UI.screens.train`): a working copy of `player.stats` is edited with
+  +/- steppers (1 point = +1 stat, clamp 99). A live radar + `Engine.projectSeason(stats)`
+  (deterministic, noise-free clone of simSeason) show how allocation moves OVR/goals/
+  assists/rating. Confirm writes back to `player.stats`/`trainingPoints` and saves.
+  Reached from the hub's **Train** button. Training applies BEFORE the season is simmed,
+  so it matters immediately.
+- **Stats -> performance:** `simSeason` already derives goals (finishing/positioning/pace),
+  assists (dribbling/positioning) and rating from stats; `projectSeason` mirrors it so the
+  player can SEE the link. Key-moment minigame difficulty and the resolve roll both use the
+  chosen stat, so training also improves big moments.
+- **Level-up perks:** `Prog.advanceSeason` returns `{levelsGained}`; `playSeason` stashes
+  it in `game.pendingPerks`; the results "Continue" routes through `UI.showPerkPick(n, ...)`
+  which offers 3 unowned non-negative perks. Perk effects are gated by `T.hasPerk()` in
+  engine/moments/progression (clutch, bigGame, leader, glassCannon, engine, ironMan,
+  wonderkid all wired).
+- **Scenario context:** each scenario has `comp` (T.COMPETITIONS), `stakes`, `stakesMult`,
+  and per-choice `impact`. `Moments.context(moment)` generates an opponent club; the UI
+  renders `V.matchHeader` (comp badge + your crest vs opponent crest + stakes). Outcome
+  deltas are multiplied by `stakesMult` (final 1.7 > derby 1.35 > league ~1.2), shown as
+  effect chips on the result screen with the choice's impact line.
+
 ## Tuning log (append each pass — most recent first)
 
 - _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`

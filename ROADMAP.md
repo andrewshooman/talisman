@@ -39,9 +39,14 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       a prime tier-5 striker flirts with ~30. Log tuning passes in PROJECT_NOTES.
 - [ ] **Spin / event screen** (new `UI.screens.spin`): season-opening situation —
       transfer offer, manager change, rivalry, captaincy, loan, injury scare.
-- [ ] **Train screen** (new `UI.screens.train`): spend `trainingPoints` across the 5
-      stats; confirm; persists. (Currently points accrue but can't be spent.)
-- [ ] **Perk pick on level-up** (`progression.awardXp` hook + `UI.screens.perkPick`).
+- [x] **Train screen** (`UI.screens.train`): spend `trainingPoints` across the 5 stats
+      with a live radar + a **projected season** preview (Engine.projectSeason) so stat
+      gains visibly move OVR/goals/assists/rating. Confirm persists.
+- [x] **Perk pick on level-up** (`Prog.offerPerks` + `UI.showPerkPick`): level-ups from
+      a season offer 3 perks; chosen perks hook the math (clutch/bigGame/leader/etc.).
+- [x] **Scenario context & consequences**: key moments show a competition badge, your
+      club vs a generated opponent, the stakes, per-choice career impact, and an effect-
+      chip breakdown of the outcome. Outcomes scale by stakes (final swings > league).
 - [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
       bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
 - [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
@@ -85,6 +90,6 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Tune sim feel · Spin screen · Train screen.
-- **Next:** Transfers/awards · perk picks · grow moment pool · retirement polish.
+- **Now:** Tune sim feel · Spin/event screen · transfers between clubs.
+- **Next:** Awards/call-ups · grow moment pool · more mini-game types.
 - **Later:** Other positions · PWA · stretch (daily seed, NG+, rivals).

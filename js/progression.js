@@ -76,19 +76,31 @@
     return T.rng() < chance;
   };
 
-  // Award XP and (TODO) trigger perk pick on level-up.
+  // Award XP; return how many levels were gained (UI offers a perk pick each).
   Prog.awardXp = function (record) {
     const p = T.game.player;
     const gained = 20 + record.goals * 3 + record.assists * 2 +
       record.trophies.length * 25 + Math.round((record.rating - 6) * 20);
     p.xp += Math.max(gained, 5);
+    let levels = 0;
     while (p.xp >= T.TUNING.XP_PER_LEVEL) {
       p.xp -= T.TUNING.XP_PER_LEVEL;
       p.level += 1;
       p.trainingPoints += 4;
-      // TODO: trigger perk-pick UI here.
+      levels += 1;
     }
-    return gained;
+    return levels;
+  };
+
+  // Offer up to `count` perks the player doesn't already own.
+  Prog.offerPerks = function (count) {
+    const owned = T.game.player.perks;
+    const pool = Object.keys(T.PERKS).filter(id => !T.PERKS[id].negative && !owned.includes(id));
+    const out = [];
+    while (out.length < (count || 3) && pool.length) {
+      out.push(pool.splice(Math.floor(T.rng() * pool.length), 1)[0]);
+    }
+    return out;
   };
 
   // Fold a finished season record into history + totals, advance age.
@@ -103,7 +115,7 @@
     if (record.rating > t.peakRating) t.peakRating = record.rating;
 
     g.history.push(record);
-    Prog.awardXp(record);
+    const levelsGained = Prog.awardXp(record);
 
     // morale settles toward 50 a touch each year
     g.player.morale = Math.round(T.clamp(g.player.morale * 0.9 + 5, 0, 100));
@@ -117,6 +129,7 @@
     if (g.player.age >= 38 && T.overall() < 60) {
       g.careerOver = true;
     }
+    return { levelsGained };
   };
 
   // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.

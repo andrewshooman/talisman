@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.2.0";
+  T.VERSION = "0.3.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -90,6 +90,15 @@
     mercenary:    { name: "Mercenary",      desc: "More/bigger offers; variety legacy bonus." },
     wonderkid:    { name: "Wonderkid",      desc: "Faster stat growth while young." },
     injuryProne:  { name: "Injury-Prone",   desc: "(Acquired) higher injury risk.", negative: true },
+  };
+
+  // ---- Competitions (context for key moments) ------------------------
+  T.COMPETITIONS = {
+    LEAGUE: { label: "League", tone: "pop" },
+    DERBY:  { label: "Derby", tone: "pop" },
+    CUP:    { label: "Cup Tie", tone: "gold" },
+    FINAL:  { label: "Cup Final", tone: "gold" },
+    MEDIA:  { label: "Press", tone: "muted" },
   };
 
   // ---- Legacy ranking tiers (ascending) ------------------------------
