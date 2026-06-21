@@ -193,6 +193,9 @@
         ${p.perks.map(id => `<span class="pill gold">${T.PERKS[id].name}</span>`).join("")}
       </div></div>` : ``}
 
+      <button class="btn ${p.trainingPoints > 0 ? "" : "ghost"}" id="train">
+        Train${p.trainingPoints > 0 ? ` · ${p.trainingPoints} pts` : ""}
+      </button>
       <button class="btn primary" id="play">Play Season #${g.season}</button>
       <div class="btn-row">
         <button class="btn ghost" id="retire">Retire</button>
@@ -200,10 +203,131 @@
       </div>
     `;
 
+    wrap.querySelector("#train").onclick = () => UI.show("train");
     wrap.querySelector("#play").onclick = () => UI.playSeason();
     wrap.querySelector("#retire").onclick = () => { g.careerOver = true; T.save(); UI.show("retirement"); };
     wrap.querySelector("#menu").onclick = () => { T.save(); UI.show("title"); };
     return wrap;
+  };
+
+  // ---- Train screen: spend points; live radar + projected output ------
+  UI.screens.train = function () {
+    const g = T.game, p = g.player;
+    const keys = T.POSITIONS[p.position].stats;
+    const wrap = el(`<div class="col"></div>`);
+
+    // working copy of stats; `spent` tracks points used this visit
+    const base = Object.assign({}, p.stats);
+    const draft = Object.assign({}, p.stats);
+    let pool = p.trainingPoints;
+
+    wrap.innerHTML = `
+      <div class="row between">
+        <h2 style="margin:0">Training</h2>
+        <span class="pill gold" id="pts">${pool} pts</span>
+      </div>
+      <div class="muted" style="font-size:13px" id="ageNote"></div>
+
+      <div class="card"><div class="radar-wrap" id="radar"></div></div>
+
+      <div class="card">
+        <div class="row between" style="margin-bottom:8px">
+          <b>Projected season</b><span class="muted" style="font-size:12px">if you play now</span>
+        </div>
+        <div class="row between" id="proj"></div>
+      </div>
+
+      <div class="card" id="alloc"></div>
+
+      <button class="btn primary" id="confirm">Confirm & Save</button>
+      <button class="btn ghost" id="back">Back (discard)</button>
+    `;
+
+    // age context
+    const prime = T.POSITIONS[p.position].prime;
+    wrap.querySelector("#ageNote").textContent =
+      p.age < prime ? `Age ${p.age}: still developing toward your prime (${prime}). Points go far now.`
+      : p.age <= prime + 1 ? `Age ${p.age}: at your peak — make these points count.`
+      : `Age ${p.age}: past your prime — training fights the natural decline.`;
+
+    const baseProj = T.Engine.projectSeason(base);
+
+    const renderProj = () => {
+      const proj = T.Engine.projectSeason(draft);
+      const d = (now, was) => now > was ? ` <span class="up">▲${now - was}</span>` : "";
+      wrap.querySelector("#proj").innerHTML = `
+        ${projChip("OVR", proj.ovr, d(proj.ovr, baseProj.ovr))}
+        ${projChip("Goals", proj.goals, d(proj.goals, baseProj.goals))}
+        ${projChip("Assists", proj.assists, d(proj.assists, baseProj.assists))}
+        ${projChip("Rating", proj.rating, d(proj.rating, baseProj.rating))}`;
+    };
+    const renderRadar = () => { wrap.querySelector("#radar").innerHTML = T.Vis.radar(draft, keys, 240); };
+    const renderPts = () => { wrap.querySelector("#pts").textContent = pool + " pts"; };
+
+    const renderAlloc = () => {
+      wrap.querySelector("#alloc").innerHTML = keys.map(k => {
+        const added = draft[k] - base[k];
+        return `<div class="alloc-row">
+          <div class="grow">
+            <div class="row between"><span>${lbl(k)}</span>
+              <span class="val">${draft[k]}${added ? ` <span class="up">(+${added})</span>` : ""}</span></div>
+            <div class="bar"><span style="width:${draft[k]}%"></span></div>
+          </div>
+          <button class="btn step" data-k="${k}" data-dir="-1" ${draft[k] <= base[k] ? "disabled" : ""}>−</button>
+          <button class="btn step" data-k="${k}" data-dir="1" ${(pool <= 0 || draft[k] >= 99) ? "disabled" : ""}>+</button>
+        </div>`;
+      }).join("");
+      wrap.querySelectorAll("#alloc .step").forEach(b => {
+        b.onclick = () => {
+          const k = b.dataset.k, dir = +b.dataset.dir;
+          if (dir > 0 && pool > 0 && draft[k] < 99) { draft[k]++; pool--; }
+          else if (dir < 0 && draft[k] > base[k]) { draft[k]--; pool++; }
+          refresh();
+        };
+      });
+    };
+
+    const refresh = () => { renderPts(); renderRadar(); renderProj(); renderAlloc(); };
+    refresh();
+
+    wrap.querySelector("#confirm").onclick = () => {
+      p.stats = draft;
+      p.trainingPoints = pool;
+      T.save();
+      UI.show("hub");
+    };
+    wrap.querySelector("#back").onclick = () => UI.show("hub");
+    return wrap;
+  };
+
+  // ---- Perk pick screen (level-up reward) ----------------------------
+  UI.showPerkPick = function (remaining, afterAll) {
+    if (remaining <= 0) { afterAll(); return; }
+    const offered = T.Prog.offerPerks(3);
+    if (!offered.length) { afterAll(); return; }
+
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div class="center">
+        <div class="pill gold pop-in">LEVEL UP</div>
+        <h2 style="margin-top:8px">Choose a perk</h2>
+        <div class="muted" style="font-size:13px">Perks shape your identity and change how the game plays.</div>
+      </div>
+      <div class="col" id="perks"></div>
+    `;
+    const list = wrap.querySelector("#perks");
+    offered.forEach(id => {
+      const perk = T.PERKS[id];
+      const b = el(`<button class="btn perk-pick"><b class="gold">${perk.name}</b>
+        <span class="muted" style="font-weight:400">${perk.desc}</span></button>`);
+      b.onclick = () => {
+        T.game.player.perks.push(id);
+        T.save();
+        UI.showPerkPick(remaining - 1, afterAll);
+      };
+      list.appendChild(b);
+    });
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
   // ---- Season flow: key moments then results -------------------------
@@ -222,8 +346,9 @@
         // injuries & end-of-season processing
         T.Prog.rollInjury();
         const ended = T.Prog.rollCareerEndInjury();
-        T.Prog.advanceSeason(record);
+        const adv = T.Prog.advanceSeason(record);
         if (ended) g.careerOver = true;
+        g.pendingPerks = ended ? 0 : (adv.levelsGained || 0);
         T.save();
         UI.renderResults(record, ended);
       }
@@ -231,20 +356,25 @@
     next();
   };
 
-  // Step 1: show the scene + prompt + action choices.
+  // Step 1: show match context + scene + prompt + action choices.
   UI.renderMoment = function (moment, record, done) {
+    const ctx = T.Moments.context(moment);
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div class="pill gold">KEY MOMENT</div>
+      <div class="pill gold center" style="align-self:center">KEY MOMENT</div>
+      ${T.Vis.matchHeader(T.game.club.name, ctx)}
       <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
       <div class="card"><p style="font-size:18px;font-weight:700;margin:0">${moment.prompt}</p></div>
-      <div class="muted center" style="font-size:12px">Pick your move — then nail the skill challenge.</div>
+      <div class="muted center" style="font-size:12px">Pick your move — each one tests a different attribute.</div>
       <div class="col" id="choices"></div>
     `;
     const choices = wrap.querySelector("#choices");
     moment.choices.forEach(choice => {
-      const b = el(`<button class="btn">${choice.label}
-        <span class="muted" style="font-weight:400;margin-left:6px">(${lbl(choice.stat)})</span></button>`);
+      const sv = T.game.player.stats[choice.stat];
+      const b = el(`<button class="btn choice-btn">
+        <span class="grow" style="text-align:left">${choice.label}
+          <span class="choice-impact">${choice.impact}</span></span>
+        <span class="choice-stat">${lbl(choice.stat)} ${sv != null ? sv : ""}</span></button>`);
       b.onclick = () => UI.playMomentGame(moment, choice, record, done);
       choices.appendChild(b);
     });
@@ -256,7 +386,7 @@
     const p = T.game.player;
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div class="pill gold">${choice.label.toUpperCase()}</div>
+      <div class="pill gold center" style="align-self:center">${choice.label.toUpperCase()}</div>
       <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
       <div id="mghost"></div>
     `;
@@ -269,7 +399,7 @@
       action: game.action,
       statVal: p.stats[choice.stat] != null ? p.stats[choice.stat] : 50,
     }, (gameResult) => {
-      const res = T.Moments.resolve(choice, gameResult.skill);
+      const res = T.Moments.resolve(choice, gameResult.skill, moment);
       res.gameText = gameResult.text;
       // apply deltas
       p.form = T.clamp(p.form + res.deltas.form, -10, 10);
@@ -283,14 +413,23 @@
   };
 
   UI.renderMomentResult = function (res, done) {
+    const d = res.deltas;
+    const chips = [];
+    if (d.goals) chips.push(`<span class="fx-chip good">⚽ Goal +${d.goals}</span>`);
+    if (d.rating) chips.push(`<span class="fx-chip ${d.rating >= 0 ? "good" : "bad"}">Rating ${d.rating >= 0 ? "+" : ""}${d.rating}</span>`);
+    if (d.morale) chips.push(`<span class="fx-chip ${d.morale >= 0 ? "good" : "bad"}">Morale ${d.morale >= 0 ? "+" : ""}${d.morale}</span>`);
+    if (d.form) chips.push(`<span class="fx-chip ${d.form >= 0 ? "good" : "bad"}">Form ${d.form >= 0 ? "+" : ""}${d.form}</span>`);
+
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div style="height:6vh"></div>
+      <div style="height:5vh"></div>
       <div class="brand pop-in" style="font-size:28px;color:${res.success ? 'var(--good)' : 'var(--bad)'}">
         ${res.success ? "⚽ SUCCESS" : "✖ MISS"}
       </div>
       ${res.gameText ? `<div class="center muted">${res.gameText}</div>` : ``}
       <div class="card center"><p style="font-size:18px;margin:0">${res.text}</p></div>
+      <div class="fx-chips">${chips.join("")}</div>
+      <div class="card center muted" style="font-size:13px">${res.impact || ""}</div>
       <button class="btn primary" id="cont">Continue</button>
     `;
     wrap.querySelector("#cont").onclick = done;
@@ -333,10 +472,18 @@
         ${T.Vis.sparkline(record.matchRatings)}
       </div>
 
+      ${(!careerEnded && T.game.pendingPerks) ? `<div class="card center pop-in">
+        <b class="gold">⬆ LEVEL UP ×${T.game.pendingPerks}</b>
+        <div class="muted" style="font-size:13px">Pick a perk, then spend new training points.</div></div>` : ``}
       ${careerEnded ? `<div class="card center"><b class="gold">A serious injury has ended your career.</b></div>` : ``}
       <button class="btn primary" id="cont">${careerEnded ? "See Legacy" : "Continue"}</button>
     `;
-    wrap.querySelector("#cont").onclick = () => UI.show(T.game.careerOver ? "retirement" : "hub");
+    wrap.querySelector("#cont").onclick = () => {
+      if (T.game.careerOver) { UI.show("retirement"); return; }
+      const picks = T.game.pendingPerks || 0;
+      T.game.pendingPerks = 0;
+      UI.showPerkPick(picks, () => UI.show("hub"));
+    };
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
     if (record.trophies.length) UI.confetti();
   };
@@ -408,6 +555,9 @@
   }
   function chip(label, val) {
     return `<div class="center"><div class="muted" style="font-size:11px">${label}</div><b>${val}</b></div>`;
+  }
+  function projChip(label, val, delta) {
+    return `<div class="center"><div class="muted" style="font-size:11px">${label}</div><b>${val}${delta || ""}</b></div>`;
   }
   function ordinal(n) {
     const s = ["th", "st", "nd", "rd"], v = n % 100;

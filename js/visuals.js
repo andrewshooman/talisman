@@ -253,4 +253,24 @@
     const s = ["th", "st", "nd", "rd"], v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
+
+  // ---- Match context header (key moments) ----------------------------
+  // ctx from Moments.context(): { compLabel, tone, opponent, stakes }
+  V.matchHeader = function (myClubName, ctx) {
+    const toneClass = ctx.tone === "gold" ? "gold" : "";
+    const fixture = ctx.opponent
+      ? `<div class="mh-fixture">
+           <div class="mh-side">${V.crest(myClubName, 30)}</div>
+           <div class="mh-vs">VS</div>
+           <div class="mh-side">${V.crest(ctx.opponent, 30)}</div>
+         </div>
+         <div class="mh-names"><span>${myClubName}</span><span>${ctx.opponent}</span></div>`
+      : `<div class="mh-fixture"><div class="mh-side">${V.crest(myClubName, 30)}</div>
+           <div class="mh-vs">📣</div></div>`;
+    return `<div class="match-header">
+      <span class="pill ${toneClass}">${ctx.compLabel}</span>
+      ${fixture}
+      <div class="mh-stakes">${ctx.stakes}</div>
+    </div>`;
+  };
 })();
