@@ -569,11 +569,12 @@
     return s;
   }
 
-  // brief color flash on the active element to sell success/failure
+  // brief colour flash + pop on the active element to sell success/failure
   function flash(node, skill) {
     if (!node) return;
     const col = skill > 0.6 ? "var(--good)" : skill > 0.3 ? "var(--gold)" : "var(--bad)";
     node.style.boxShadow = `0 0 0 3px ${col}, 0 0 24px ${col}`;
     node.style.background = col;
+    node.classList.add("mg-flash");
   }
 })();

@@ -207,6 +207,45 @@
     };
   };
 
+  // Plain-language read of a key-moment result for the UI: the animation kind,
+  // a headline, descriptive consequences (no raw rating/morale numbers), an
+  // insight line that teaches what it means, and whether to celebrate big.
+  Moments.describeResult = function (res, moment, gameType) {
+    const keeperGame = gameType === "oneOnOne" || gameType === "aimTarget" || gameType === "freeKick";
+    const outcome = res.success
+      ? (res.effect === "assist" ? "assist" : "goal")
+      : (keeperGame ? "saved" : "miss");
+    const headline = { goal: "GOAL!", assist: "ASSIST!", saved: "SAVED!", miss: "MISSED" }[outcome];
+
+    const d = res.deltas || {};
+    const cons = [];
+    if (res.success && res.effect === "goal") cons.push({ tone: "good", text: "⚽ You found the net" });
+    if (res.success && res.effect === "assist") cons.push({ tone: "good", text: "🅰 You teed up a teammate" });
+    const m = d.morale || 0, f = d.form || 0;
+    if (m) cons.push({ tone: m >= 0 ? "good" : "bad",
+      text: m >= 8 ? "😎 Confidence soaring" : m >= 4 ? "🙂 Confidence up" : m > 0 ? "Confidence lifted"
+          : m <= -6 ? "😟 Head dropped" : "😕 Confidence dented" });
+    if (f) cons.push({ tone: f >= 0 ? "good" : "bad",
+      text: f >= 3 ? "🔥 In the groove" : f > 0 ? "📈 Form sharper" : "📉 Form dipped" });
+
+    const stakes = (moment && moment.stakesMult) || 1;
+    const big = stakes >= 1.5 || !!res.wonTitle;
+    let insight;
+    if (res.wonTitle) insight = `You delivered when it mattered most — ${res.wonTitle} is yours. This is the kind of moment a legacy is built on.`;
+    else if (moment && moment.track === "intl") insight = res.success
+      ? "On the international stage the whole nation is watching — these are the goals that make you a hero of a country."
+      : "The world stage is unforgiving, but the great ones always answer back.";
+    else if (res.success && res.effect === "assist") insight = "Not every defining moment is a goal — the best strikers create as well as finish, and assists still build your reputation.";
+    else if (res.success) insight = big
+      ? "A goal on a stage this big echoes for years — exactly the kind of moment careers are remembered for."
+      : "Goals are a striker's currency, and the confidence you take from this carries your form through the season.";
+    else insight = big
+      ? "It slips away this time — but the best strikers are defined by how they respond to the big misses."
+      : "A chance gone. Shake it off — your form and confidence ride on bouncing straight back.";
+
+    return { outcome, headline, consequences: cons, insight, big };
+  };
+
   Moments.pickSeason = function (n) {
     const count = n || T.TUNING.KEY_MOMENTS_PER_SEASON;
     const pool = Moments.POOL_FWD.slice();

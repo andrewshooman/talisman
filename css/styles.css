@@ -531,6 +531,81 @@ input[type="text"], select {
 .mg-flash { animation: mgFlash .4s ease; }
 @keyframes mgFlash { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
+/* ============================================================
+   Key-moment OUTCOME animation (the payoff after a mini-game)
+   ============================================================ */
+.outcome {
+  position: relative; height: 230px; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 16%, rgba(245,196,81,.10), transparent 60%),
+    linear-gradient(180deg, #12121b 0%, #0e2014 60%, #0a160d 100%);
+}
+.outcome::after { content: ""; position: absolute; left: 0; right: 0; bottom: 40px; height: 1px; background: rgba(255,255,255,.06); }
+
+/* goal frame + net */
+.oc-goal {
+  position: absolute; top: 30px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 74px; border: 3px solid #eef; border-bottom: none; border-radius: 5px 5px 0 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 11px, rgba(255,255,255,.07) 11px 12px),
+    repeating-linear-gradient(0deg, transparent 0 11px, rgba(255,255,255,.07) 11px 12px);
+}
+.oc-goal.shake { animation: netShake .45s ease .5s; }
+@keyframes netShake { 0%,100% { transform: translateX(-50%) scaleY(1); } 30% { transform: translateX(-50%) scaleY(1.05); } 65% { transform: translateX(-50%) scaleY(.98); } }
+
+/* keeper */
+.oc-keeper {
+  position: absolute; top: 60px; left: 50%; margin-left: -18px; width: 36px; height: 50px;
+  background: linear-gradient(180deg, #7fdcff, #3aa0c8); border-radius: 9px 9px 4px 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.4); transform-origin: bottom center;
+  transition: transform .32s cubic-bezier(.3,.7,.4,1) .12s;
+}
+.oc-keeper.dive-l { transform: translateX(-48px) rotate(-42deg); }
+.oc-keeper.dive-r { transform: translateX(48px) rotate(42deg); }
+
+/* teammate (for assists) */
+.oc-teammate { position: absolute; top: 82px; left: 76%; width: 13px; height: 13px; border-radius: 50%; background: var(--good); opacity: 0; box-shadow: 0 0 10px var(--good); }
+.outcome.oc-assist .oc-teammate { animation: tmShow .4s ease .32s forwards; }
+@keyframes tmShow { to { opacity: .95; } }
+
+/* the ball + its trajectory by outcome */
+.oc-ball {
+  position: absolute; bottom: 30px; left: 50%; margin-left: -9px; width: 18px; height: 18px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, #c9c9d6); border: 1px solid #0a0a0f;
+  box-shadow: 0 4px 9px rgba(0,0,0,.45);
+}
+.oc-ball.goal   { animation: ballGoal .66s cubic-bezier(.25,.05,.4,1) forwards; }
+.oc-ball.assist { animation: ballAssist .58s ease-out forwards; }
+.oc-ball.saved  { animation: ballSaved .56s ease-out forwards; }
+.oc-ball.miss   { animation: ballMiss .62s ease-out forwards; }
+@keyframes ballGoal   { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(-26px,-150px) scale(.6); } }
+@keyframes ballAssist { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(118px,-118px) scale(.62); } }
+@keyframes ballSaved  { 0% { transform: translate(0,0) scale(1); } 72% { transform: translate(-8px,-118px) scale(.72); } 100% { transform: translate(-26px,-100px) scale(.7); } }
+@keyframes ballMiss   { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(128px,-176px) scale(.52); } }
+
+/* gold pulse ring behind a successful finish */
+.oc-ring { position: absolute; top: 40%; left: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 3px solid var(--gold); opacity: 0; }
+.outcome.oc-goal .oc-ring, .outcome.oc-assist .oc-ring { animation: ringPulse .75s ease .5s forwards; }
+@keyframes ringPulse { 0% { opacity: .85; transform: scale(.3); } 100% { opacity: 0; transform: scale(6.5); } }
+
+/* the headline stamp */
+.oc-stamp {
+  position: absolute; top: 40%; left: 50%; transform: translate(-50%,-50%) scale(0) rotate(-8deg);
+  font-weight: 900; font-size: 42px; letter-spacing: .03em; text-shadow: 0 3px 16px rgba(0,0,0,.65);
+}
+.oc-stamp.good { color: var(--gold); }
+.oc-stamp.bad  { color: var(--bad); }
+.oc-stamp.show { animation: stampPop .5s cubic-bezier(.2,1.6,.35,1) .5s forwards; }
+@keyframes stampPop { to { transform: translate(-50%,-50%) scale(1) rotate(-8deg); } }
+.outcome.big .oc-stamp { font-size: 54px; }
+.outcome.big { box-shadow: inset 0 0 60px rgba(245,196,81,.12); }
+
+/* insight ("what it means") card */
+.card.insight { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
+.insight .ins-icon { font-size: 18px; line-height: 1.4; }
+.insight p { margin: 0; font-size: 13px; color: var(--text); line-height: 1.45; }
+
 /* Transfer offer cards */
 .btn.offer-btn {
   height: auto; min-height: 64px; padding: 12px 14px; align-items: center; gap: 12px;
