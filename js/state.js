@@ -73,6 +73,7 @@
         trainingPoints: 6,
         perks: [],
         injuries: [],     // active status effects
+        caps: 0,          // national-team appearances (earned via Prog.rollAwards)
       },
 
       club: {

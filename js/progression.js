@@ -76,11 +76,53 @@
     return T.rng() < chance;
   };
 
+  // Season awards & national-team progress. Returns the award ids earned,
+  // and advances the player's cap count once they're an international.
+  // League-best honours (Golden Boot / Playmaker) are judged against a
+  // synthesised rival benchmark so the race feels contested season to season.
+  Prog.rollAwards = function (record) {
+    const g = T.game, p = g.player;
+    const awards = [];
+    const ovr = T.overall();
+
+    // Stronger leagues set a higher bar for the individual scoring/creating gongs.
+    const rivalGoals = T.randInt(17, 27) + (record.clubTier - 3);
+    const rivalAssists = T.randInt(11, 18);
+    if (record.goals >= rivalGoals) awards.push("goldenBoot");
+    if (record.assists >= rivalAssists) awards.push("playmaker");
+
+    // Player of the Season — elite average rating + a strong finish, or the title.
+    const wonTitle = record.trophies.includes("League Title");
+    const potsBar = T.hasPerk("bigGame") ? 7.35 : 7.5;
+    if ((record.rating >= potsBar && record.finish <= 5) || (wonTitle && record.rating >= 7.1)) {
+      awards.push("pots");
+    }
+
+    // Young Player of the Season — best under-22.
+    if (p.age <= 21 && (record.goals >= 12 || record.assists >= 10 || record.rating >= 7.1)) {
+      awards.push("youngPlayer");
+    }
+
+    // National team: first call-up, then accumulating caps and an outstanding-year gong.
+    p.caps = p.caps || 0;
+    const intlReady = ovr >= 70 || record.goals >= 14 || awards.length > 0;
+    if (intlReady) {
+      if (p.caps === 0) awards.push("callUp");
+      p.caps += T.clamp(Math.round(record.apps / 4), 2, 12);
+      if (record.rating >= 7.7 && (record.goals >= 18 || record.trophies.length)) {
+        awards.push("intlStar");
+      }
+    }
+
+    return awards;
+  };
+
   // Award XP; return how many levels were gained (UI offers a perk pick each).
   Prog.awardXp = function (record) {
     const p = T.game.player;
     const gained = 20 + record.goals * 3 + record.assists * 2 +
-      record.trophies.length * 25 + Math.round((record.rating - 6) * 20);
+      record.trophies.length * 25 + (record.awards ? record.awards.length * 30 : 0) +
+      Math.round((record.rating - 6) * 20);
     p.xp += Math.max(gained, 5);
     let levels = 0;
     while (p.xp >= T.TUNING.XP_PER_LEVEL) {
@@ -107,6 +149,11 @@
   Prog.advanceSeason = function (record) {
     const g = T.game;
     const t = g.totals;
+
+    // Season awards (sets record.awards, advances national caps) before XP/totals.
+    record.awards = Prog.rollAwards(record);
+    t.awards += record.awards.length;
+
     t.apps += record.apps;
     t.goals += record.goals;
     t.assists += record.assists;
