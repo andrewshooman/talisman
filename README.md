@@ -68,6 +68,9 @@ This project is built piecewise across many sessions. Before changing anything:
 2. Check **[ROADMAP.md](ROADMAP.md)** — grab the next task, tick it when done.
 3. Keep logic out of the DOM layer (`ui.js` is the only file that touches the DOM),
    use the RNG helpers (not `Math.random`), and theme via CSS variables.
+4. **Run the tests** before/after a change: `node tests/run.js` (or `npm test`). It's a
+   dependency-free Node suite covering data/ladder/save/balance invariants, and it also
+   runs in CI on every PR. Add an assertion whenever you change a core rule or tuning number.
 
 ## License
 

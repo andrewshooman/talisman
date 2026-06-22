@@ -483,7 +483,7 @@
     const season = T.Engine.runSeason();
     g._season = season;
 
-    // Attach each key moment to its real fixture (opponent + live scoreline).
+    // Attach each league key moment to its real fixture (opponent + live scoreline).
     const moments = T.Moments.pickSeason(season.keyRounds.length);
     moments.forEach((mo, i) => {
       const rd = season.keyRounds[i];
@@ -495,11 +495,16 @@
         gh: pm.home ? m.gh : m.ga, ga: pm.home ? m.ga : m.gh,
       };
     });
+    // Special moments (domestic cup run + international/World Cup) play after the
+    // league moments and award silverware into season.extra* on a winning final.
+    season.extraTrophies = [];
+    season.extraAwards = [];
+    const seq = moments.concat(T.Moments.pickSpecials(g, season));
 
     let idx = 0;
     const next = () => {
-      if (idx < moments.length) {
-        UI.renderMoment(moments[idx], season, () => { idx++; next(); });
+      if (idx < seq.length) {
+        UI.renderMoment(seq[idx], season, () => { idx++; next(); });
       } else {
         const record = T.Engine.finalizeSeason(season);
         record.proRel = T.Prog.runPromRel(season); // promotion/relegation across the pyramid
@@ -519,10 +524,13 @@
   // Step 1: show match context + scene + prompt + action choices.
   UI.renderMoment = function (moment, season, done) {
     const ctx = T.Moments.context(moment);
+    // International games are played for your nation, not your club.
+    const myName = moment.track === "intl" ? T.game.player.nation : T.game.club.name;
+    const banner = moment.tournament ? moment.tournament : "KEY MOMENT";
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div class="pill gold center" style="align-self:center">KEY MOMENT</div>
-      ${T.Vis.matchHeader(T.game.club.name, ctx)}
+      <div class="pill gold center" style="align-self:center">${banner}</div>
+      ${T.Vis.matchHeader(myName, ctx)}
       <div class="scene-wrap">${T.Minigames.scene(moment.scene)}</div>
       <div class="card"><p style="font-size:18px;font-weight:700;margin:0">${moment.prompt}</p></div>
       <div class="muted center" style="font-size:12px">Pick your move — each one tests a different attribute.</div>
@@ -564,17 +572,27 @@
       p.form = T.clamp(p.form + res.deltas.form, -10, 10);
       p.morale = T.clamp(p.morale + res.deltas.morale, 0, 100);
 
-      // A successful scoring/assisting choice changes the actual match.
-      if (res.success && res.effect && res.effect !== "none") {
-        T.Engine.applyMoment(season, moment._rd, res.effect);
+      const isLeague = moment._rd != null;
+      if (isLeague) {
+        // A successful scoring/assisting choice changes the actual league match.
+        if (res.success && res.effect && res.effect !== "none") {
+          T.Engine.applyMoment(season, moment._rd, res.effect);
+        }
+        const m = T.Engine.playerMatchAt(season, moment._rd);
+        const pm = season.pmeta[moment._rd];
+        res.matchAfter = {
+          opp: moment._match.oppName, home: pm.home,
+          my: pm.home ? m.gh : m.ga, op: pm.home ? m.ga : m.gh,
+        };
+      } else {
+        // Special cup / international moment: a winning final earns silverware.
+        res.tournament = moment.tournament;
+        if (res.success && moment.grant) {
+          if (moment.grant.trophy) season.extraTrophies.push(moment.grant.trophy);
+          if (moment.grant.award) season.extraAwards.push(moment.grant.award);
+          res.wonTitle = moment.grant.trophy || (moment.grant.award && T.AWARDS[moment.grant.award] && T.AWARDS[moment.grant.award].name);
+        }
       }
-      // recompute the shown scoreline for the result screen
-      const m = T.Engine.playerMatchAt(season, moment._rd);
-      const pm = season.pmeta[moment._rd];
-      res.matchAfter = {
-        opp: moment._match.oppName, home: pm.home,
-        my: pm.home ? m.gh : m.ga, op: pm.home ? m.ga : m.gh,
-      };
       T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
       setTimeout(() => UI.renderMomentResult(res, done), 350);
     });
@@ -603,6 +621,11 @@
         <b style="font-size:20px">${res.matchAfter.home
           ? `${T.game.club.name} ${res.matchAfter.my}–${res.matchAfter.op} ${res.matchAfter.opp}`
           : `${res.matchAfter.opp} ${res.matchAfter.op}–${res.matchAfter.my} ${T.game.club.name}`}</b>
+      </div>` : ``}
+      ${res.tournament ? `<div class="card center">
+        <div class="muted" style="font-size:12px">${res.tournament}</div>
+        ${res.wonTitle ? `<b class="gold pop-in" style="font-size:20px">🏆 ${res.wonTitle} won!</b>`
+          : `<b style="font-size:16px">${res.success ? "Through to the next round" : "Knocked out"}</b>`}
       </div>` : ``}
       <div class="card center muted" style="font-size:13px">${res.impact || ""}</div>
       <button class="btn primary" id="cont">Continue</button>

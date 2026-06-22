@@ -1,0 +1,10 @@
+{
+  "name": "talisman",
+  "version": "0.11.0",
+  "private": true,
+  "description": "TALISMAN — a single-player football career RPG. Static web app, no build step. The package manifest exists only to expose the Node test harness.",
+  "scripts": {
+    "test": "node tests/run.js"
+  },
+  "license": "MIT"
+}

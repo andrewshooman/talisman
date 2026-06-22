@@ -83,7 +83,17 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       (beat the onrushing keeper) — now 5 total. See `minigames.js`.
 - [x] Wire **perks into math** (clutch / bigGame / leader / glassCannon / engine /
       ironMan / wonderkid all hooked).
-- [ ] Context-aware moment selection (finals only during a cup run / late season).
+- [x] **Cup & international/World Cup scenarios** (`Moments.POOL_CUP` / `POOL_INTL` +
+      `pickSpecials`): special moments that aren't tied to a league fixture — a domestic
+      cup run (win the final → Domestic Cup, replacing the old coin-flip), and once capped,
+      international games with a **World Cup every 4th season** (win the final → World Cup
+      Winner award). Fixed the immersion bug where cup-final/cup-tie moments showed up in
+      league games (`final_breakaway` removed, `penalty` relabelled LEAGUE).
+- [x] **Test harness + CI** (`tests/run.js`, `npm test`, GitHub Actions): 46 assertions —
+      data integrity, RNG determinism, save/load round-trip, ladder integrity through
+      pro/rel + transfers, the specials, and loose balance bounds so a tuning blow-up
+      fails CI. Replaces the throwaway `/tmp` scripts.
+- [ ] Context-aware moment *selection within the league* (e.g. derby only vs a rival).
 
 ---
 
