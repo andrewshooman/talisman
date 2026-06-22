@@ -16,7 +16,27 @@
   const T = window.TALISMAN;
   const League = (T.League = {});
 
-  // Build 20 teams. Index 0 is always the player's club.
+  // Build the player's current division (20 teams) from the persistent ladder.
+  // Player is always index 0. Rivals use their stable T.CLUB_DB strength (plus
+  // a little seasonal noise); their crest/kit colours come from T.CLUB_COLORS.
+  League.buildDivision = function (g) {
+    const entries = g.league.divs[g.division];
+    const ovr = T.overall();
+    const base = T.CLUB_TIERS[g.club.tier].base;
+    let pstr = base + (ovr - 60) * 0.2;
+    if (T.hasPerk && T.hasPerk("leader")) pstr += 3;
+    const teams = [{ id: 0, cid: "P", name: g.club.name, str: T.clamp(Math.round(pstr), 25, 95), isPlayer: true }];
+    let id = 1;
+    entries.forEach(e => {
+      if (e === "P") return;
+      const c = T.CLUB_DB[e];
+      teams.push({ id: id++, cid: e, name: c.name, str: T.clamp(Math.round(c.str + T.rand(-4, 4)), 25, 95) });
+    });
+    return teams;
+  };
+
+  // Build 20 teams. Index 0 is always the player's club. (Legacy generator,
+  // kept for compatibility; the pyramid build now uses buildDivision.)
   League.buildTeams = function (club, tier, overall) {
     const base = T.CLUB_TIERS[tier].base;
     const teams = [];

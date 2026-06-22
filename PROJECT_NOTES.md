@@ -199,6 +199,11 @@ the final-tier histogram. (Throwaway scripts lived in `/tmp`; re-create as neede
 
 ## Tuning log (append each pass — most recent first)
 
+- _2026-06-22 (league pyramid)_ — Built the four-division English-style pyramid (80
+  recognisable clubs), promotion/relegation, and bumped key moments 4 → 8. Validated
+  headlessly over 300 careers: every division stays at 20 clubs with exactly one player
+  sentinel; near-optimal players climb to the Prime League and rarely relegate (≈5/300) —
+  fine, a weaker player will yo-yo more. `?v=0.7.0`.
 - _2026-06-22 (balance audit)_ — Ran ~1500 simulated near-optimal careers. **Findings:**
   goal output is sound (avg prime season ~16→23 goals tier1→tier5, best season ~30–38,
   outliers ~55); but **~85% of careers ranked GOAT** and **awards fired ~1.5×/season** —
@@ -219,38 +224,44 @@ the final-tier histogram. (Throwaway scripts lived in `/tmp`; re-create as neede
   (MAX_GOALS 30, MAX_ASSISTS 18, BASE_INJURY_CHANCE 0.12). Engine goal formula:
   `(finishing*.5 + positioning*.3 + pace*.2)/99 * MAX_GOALS * form * fitness * attack`.
   Validated by the 2026-06-22 audit above — goal ranges are fine; legacy/awards were not.
-- _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`
-  (MAX_GOALS 30, MAX_ASSISTS 18, BASE_INJURY_CHANCE 0.12). Engine goal formula:
-  `(finishing*.5 + positioning*.3 + pace*.2)/99 * MAX_GOALS * form * fitness * attack`.
-  **Not validated by playtest yet** — first Phase-1 task is to sanity-check ranges.
 
-## League world (planned — Phase 1.5, requested 2026-06-22)
+## League world (implemented — Phase 1.5, v0.7.0)
 
-Goal: make the world feel like the English football pyramid with **legally-distinct but
-recognisable** clubs, add **promotion/relegation**, and give the player **more control**
-over matches so user performance visibly drives the club's season.
+The English-style pyramid with **legally-distinct but recognisable** clubs, real
+promotion/relegation, and more player control over the season.
 
 - **IP guardrail (unchanged):** no real club names, crests, kits, or competition logos.
-  Use real-ish *place* names + altered club words + a *stable* colour identity (e.g. a
-  red Manchester side, a blue London side) so fans recognise the analogue without
-  trading on protected marks. Keep it parody/pastiche, like unlicensed football games.
-- **Data shape (proposed `data.js`):** a fixed `T.CLUBS` table per division —
-  `{ id, name, place, division, colors:{primary,secondary}, seed }`. `visuals.js`
-  `V.palette`/`crest`/`kit` are already deterministic from a seed string, so pinning a
-  `seed`/colours per club gives the *same* crest & kit every season and across careers.
-- **Divisions:** four-tier pyramid mapped onto the existing `CLUB_TIERS` 1–5 feel
-  (top flight → second → third → fourth). Each division ~20 clubs; `league.js`
-  `buildTeams` draws the player's club + rivals from the club's current division.
-- **Promotion/relegation (`league.js` + `progression.js`):** after `finalizeSeason`,
-  top N clubs go up / bottom N go down; the player's club changes division (and effective
-  tier) when they finish in those bands. Persist division membership on `game` (the league
-  is currently rebuilt fresh each season — it must carry over for pro/rel to mean
-  anything). A promoted player faces tougher rivals (and a bigger legacy stage) next year.
-- **Player control / match impact (mechanic TBD with user):** options on the table —
-  more key moments per match-week, a per-match "get involved" input, or letting
-  mini-game performance scale the club's match result more strongly (and ripple into
-  rival fixtures). Confirm the desired feel before building; wire through
-  `engine.applyMoment` / `runSeason` so user skill changes the table, not just the record.
+  Clubs use real-ish *place* names + altered club words + nicknames + a *stable* colour
+  identity (parody/pastiche, like unlicensed football games). Keep it that way.
+- **`data.js`:** `T.DIVISIONS` (4 divisions, each `{name, short, tier}`) and `T.CLUB_DB`
+  (80 clubs, 20/division: `{name, div, str, hue, nick, opt}`). At load it builds
+  `T.CLUB_COLORS` (name → palette) and `T.CLUB_NICK` (name → nickname). `opt.w/d/sec`
+  drive white/dark/two-tone kits. `str` is a stable 25–95 strength matching tier bases.
+- **`visuals.js`:** `V.palette(seed)` returns `T.CLUB_COLORS[seed]` if present, else the
+  hashed fallback — so every named club's crest/kit colour is identical every time, and
+  player-named/legacy clubs still work.
+- **`state.js`:** `T.initLeague(startTier)` builds the persistent ladder
+  `game.league.divs = [[clubId|"P"]×4]` and sets `game.division`. The player is the `"P"`
+  sentinel; it displaces the starting division's weakest club for the whole career so every
+  division stays at **20 forever**. `T.DIV_FOR_START_TIER` maps the create-screen tier to a
+  starting division; `T.divisionName()` is the display helper.
+- **`league.js`:** `buildDivision(g)` builds the 20-team division from the ladder, player
+  always index 0, rivals using their stable `str` (+ small noise). `buildTeams` kept for
+  compatibility but no longer used by the engine.
+- **`engine.js`:** `runSeason` uses `buildDivision` (guards pre-pyramid saves via
+  `initLeague`); `finalizeSeason` sets `season.finalOrder` (cid order for pro/rel),
+  `record.division`/`divisionName`, and names the title trophy by division.
+- **`progression.js`:** `runPromRel(season)` orders the player's division by the real table
+  and others by strength+noise, then swaps top/bottom `TUNING.PROMOTE_COUNT` (3) across each
+  boundary, updates `game.division` + `game.club.tier`, and returns a `{moved, fromName,
+  toName}` for the UI. Called from `ui.playSeason` right after `finalizeSeason`.
+- **`ui.js`:** hub shows the division name; results shows a PROMOTED/RELEGATED banner +
+  division table title; create screen shows the starting division.
+- **Player control:** `TUNING.KEY_MOMENTS_PER_SEASON` 4 → 8. Each successful scoring moment
+  still calls `engine.applyMoment` (adds a goal to that real fixture), so more moments =
+  the user's mini-game skill swings more results → moves the table and the promotion race.
+- **Validate** with a headless career loop (see "Balance audit" above): assert each
+  `game.league.divs[d].length === 20` and exactly one `"P"` every season.
 
 ## Gotchas / decisions
 

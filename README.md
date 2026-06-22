@@ -28,10 +28,12 @@ Progress saves automatically to `localStorage`.
 
 ## Current status
 
-**Phase 0 (skeleton) complete** — the **Forward (FWD)** career loop plays end-to-end:
-create → season (with interactive key moments) → results → repeat → retirement & legacy.
-Numbers are first-pass and being tuned. Other positions (GK/DEF/MID) and stretch features
-(daily seed, New Game+, rivals) are planned.
+The **Forward (FWD)** career loop plays end-to-end: create → season (with interactive
+key moments) → results → repeat → retirement & legacy. It now runs on a four-division
+**English-style league pyramid** (Prime League → The Championship → League One → League
+Two) of recognisable-but-fictional clubs with **promotion & relegation**, plus a Daily
+Challenge, Hall of Fame, awards/call-ups, and a balance-tuned Legacy ranking. Other
+positions (GK/DEF/MID) and stretch features (New Game+, rivals, cups) are planned.
 
 See the [Roadmap](ROADMAP.md) for what's next.
 
@@ -44,7 +46,7 @@ js/
   data.js           # constants: positions, stats, club tiers, perks, flavor
   state.js          # game state, new game, save/load, RNG, helpers
   engine.js         # season engine: builds league, sims every match, key moments
-  league.js         # 20-club league: schedule, match sim, standings table
+  league.js         # league pyramid: build a division, schedule, match sim, table
   visuals.js        # procedural SVG art (cards, crests, kits, radar, table, charts)
   minigames.js      # key-moment skill games + SVG stadium scenes
   moments.js        # key-moment scenarios + dice-roll resolver

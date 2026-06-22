@@ -84,7 +84,8 @@
   // ----------------------------------------------------------------
   Engine.runSeason = function () {
     const g = T.game, p = g.player;
-    const teams = T.League.buildTeams(g.club, g.club.tier, T.overall());
+    if (!g.league) T.initLeague(g.club.tier); // guard pre-pyramid saves
+    const teams = T.League.buildDivision(g);
     const sched = T.League.schedule(teams.length);
 
     const matches = [];
@@ -160,6 +161,9 @@
     const g = T.game, p = g.player;
     const table = T.League.computeTable(season.teams, season.matches);
     const finish = table.findIndex(t => t.id === 0) + 1;
+    // Final order by club id ("P" = player) drives promotion/relegation.
+    season.finalOrder = table.map(t => t.cid);
+    const divMeta = T.DIVISIONS[g.division];
 
     let goals = 0, assists = 0, apps = 0;
     const matchRatings = [];
@@ -180,11 +184,12 @@
     const rating = +(matchRatings.reduce((a, b) => a + b, 0) / Math.max(matchRatings.length, 1)).toFixed(2);
 
     const trophies = [];
-    if (finish === 1) trophies.push("League Title");
+    if (finish === 1) trophies.push((divMeta ? divMeta.name : "League") + " Title");
     if (T.rng() < (season.teams[0].str - 55) / 110) trophies.push("Domestic Cup");
 
     return {
       season: g.season, age: p.age, club: g.club.name, clubTier: g.club.tier,
+      division: g.division, divisionName: divMeta ? divMeta.name : null,
       apps, goals, assists, rating, finish, trophies, matchRatings,
       cleanSheets: 0, keyMoments: [],
       matches: matchList,
