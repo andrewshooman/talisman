@@ -172,31 +172,85 @@ T.game = {
 - **progression.js** `Prog.rollAwards(record)`: judges season honours at advance time.
   Golden Boot / Playmaker compare `record.goals|assists` to a synthesised rival
   benchmark (`T.randInt`, harder in higher tiers) so the race is contested each year.
-  POTS needs elite avg rating + top-5 finish (or the title); Young POTS is the U22
+  POTS needs elite avg rating + top-3 finish (or the title); Young POTS is the U22
   branch. International logic lives here too: once `intlReady`, the first season grants
-  `callUp`, then `player.caps` accrues (`apps/4`, clamped 2..12); a standout year adds
+  `callUp`, then `player.caps` accrues (`apps/5`, clamped 2..9); a standout year adds
   `intlStar`. Returns award ids; `advanceSeason` stores them on `record.awards`,
-  bumps `totals.awards`, and `awardXp` grants `+30 XP` each.
+  bumps `totals.awards`, and `awardXp` grants `+30 XP` each. **Benchmarks were tuned
+  up on 2026-06-22** (see tuning log) — first-pass values made awards near-automatic.
 - **state.js**: new `player.caps` (0). Old saves lack it — all reads guard with
   `p.caps = p.caps || 0` / `g.player.caps || 0`, and `h.awards || []` over history.
-- **legacy.js**: already weighted `t.awards * 80`; it now actually moves because the
-  counter increments. No legacy.js change was needed.
+- **legacy.js**: weights `t.awards * 80` and (since 2026-06-22) `caps * 1.2`, so the
+  international career also counts. `LEGACY_TIERS` were recalibrated the same day.
 - **ui.js**: results screen shows an "Individual honours" card (icons + caps) after
   the trophy card and fires confetti on any award; retirement adds Awards/Caps stat
   chips and an honours cabinet tallying awards across the whole career (`×N`).
-- Reuses existing `.cabinet`/`.trophy-item` CSS — no new styles. Bumped asset
-  `?v=` to 0.5.0 (data.js `T.VERSION` + index.html) for cache-busting.
+- Reuses existing `.cabinet`/`.trophy-item` CSS — no new styles.
+
+## Balance audit & how to re-run it
+
+A headless harness validates the sim without the DOM: `node`-load the logic modules
+(`data, state, league, engine, progression, legacy`) with a `global.window = {}` shim,
+then loop `runSeason → finalizeSeason → rollInjury → rollCareerEndInjury →
+advanceSeason` for full careers. It does **not** need visuals/minigames/ui/moments —
+key moments are optional boosts, so the core sim runs clean headless. Measure career
+goals/assists, peak & prime-season goals, awards, caps, legacy score percentiles, and
+the final-tier histogram. (Throwaway scripts lived in `/tmp`; re-create as needed.)
 
 ## Tuning log (append each pass — most recent first)
 
-- _2026-06-22_ — Added awards/call-ups (above). Benchmarks are first-pass: Golden Boot
-  bar `randInt(17,27)+(tier-3)`, Playmaker `randInt(11,18)`, POTS rating ≥ 7.5 (7.35
-  with bigGame) & finish ≤ 5. Validate alongside the Phase-1 sim tuning pass — if goal
-  output shifts, revisit these thresholds so honours stay roughly one-in-a-few-seasons.
+- _2026-06-22 (balance audit)_ — Ran ~1500 simulated near-optimal careers. **Findings:**
+  goal output is sound (avg prime season ~16→23 goals tier1→tier5, best season ~30–38,
+  outliers ~55); but **~85% of careers ranked GOAT** and **awards fired ~1.5×/season** —
+  both ranking signals were meaningless. **Fixes:** (1) tightened award benchmarks —
+  Golden Boot `randInt(24,32)+(tier-3)`, Playmaker `randInt(15,21)`, POTS rating ≥ 7.65
+  (7.5 bigGame) & finish ≤ 3, Young POTS goals ≥ 18/assists ≥ 13/rating ≥ 7.4, intlReady
+  ovr ≥ 74, caps `apps/5` clamp 2..9, intlStar rating ≥ 7.85. (2) folded `caps * 1.2`
+  into legacy. (3) recalibrated `LEGACY_TIERS` to `0 / 1200 / 2400 / 3600 / 4600 / 5500`.
+  **Result:** a well-played career now lands ~**Legend** median, **Immortal** ~top
+  20–30%, **GOAT** ~2–5%, and starting at tier 1 yields more Immortal/GOAT than tier 3
+  (difficulty multiplier finally bites). _Open:_ per-stat goal/assist curve + age-curve
+  playtest still pending.
+- _2026-06-22 (cleanup)_ — Removed dead code surfaced by the audit: `statBar` and a
+  duplicate `ordinal` in `ui.js`, and the no-op `trophy("cup"|"cup")` ternary. **Wired
+  `V.leaguePos` into the results screen** (it was defined but unused, yet the docs claimed
+  it shipped — now true). Bumped assets to `?v=0.6.0`.
+- _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`
+  (MAX_GOALS 30, MAX_ASSISTS 18, BASE_INJURY_CHANCE 0.12). Engine goal formula:
+  `(finishing*.5 + positioning*.3 + pace*.2)/99 * MAX_GOALS * form * fitness * attack`.
+  Validated by the 2026-06-22 audit above — goal ranges are fine; legacy/awards were not.
 - _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`
   (MAX_GOALS 30, MAX_ASSISTS 18, BASE_INJURY_CHANCE 0.12). Engine goal formula:
   `(finishing*.5 + positioning*.3 + pace*.2)/99 * MAX_GOALS * form * fitness * attack`.
   **Not validated by playtest yet** — first Phase-1 task is to sanity-check ranges.
+
+## League world (planned — Phase 1.5, requested 2026-06-22)
+
+Goal: make the world feel like the English football pyramid with **legally-distinct but
+recognisable** clubs, add **promotion/relegation**, and give the player **more control**
+over matches so user performance visibly drives the club's season.
+
+- **IP guardrail (unchanged):** no real club names, crests, kits, or competition logos.
+  Use real-ish *place* names + altered club words + a *stable* colour identity (e.g. a
+  red Manchester side, a blue London side) so fans recognise the analogue without
+  trading on protected marks. Keep it parody/pastiche, like unlicensed football games.
+- **Data shape (proposed `data.js`):** a fixed `T.CLUBS` table per division —
+  `{ id, name, place, division, colors:{primary,secondary}, seed }`. `visuals.js`
+  `V.palette`/`crest`/`kit` are already deterministic from a seed string, so pinning a
+  `seed`/colours per club gives the *same* crest & kit every season and across careers.
+- **Divisions:** four-tier pyramid mapped onto the existing `CLUB_TIERS` 1–5 feel
+  (top flight → second → third → fourth). Each division ~20 clubs; `league.js`
+  `buildTeams` draws the player's club + rivals from the club's current division.
+- **Promotion/relegation (`league.js` + `progression.js`):** after `finalizeSeason`,
+  top N clubs go up / bottom N go down; the player's club changes division (and effective
+  tier) when they finish in those bands. Persist division membership on `game` (the league
+  is currently rebuilt fresh each season — it must carry over for pro/rel to mean
+  anything). A promoted player faces tougher rivals (and a bigger legacy stage) next year.
+- **Player control / match impact (mechanic TBD with user):** options on the table —
+  more key moments per match-week, a per-match "get involved" input, or letting
+  mini-game performance scale the club's match result more strongly (and ripple into
+  rival fixtures). Confirm the desired feel before building; wire through
+  `engine.applyMoment` / `runSeason` so user skill changes the table, not just the record.
 
 ## Gotchas / decisions
 

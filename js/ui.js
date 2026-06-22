@@ -500,7 +500,7 @@
     const wrap = el(`<div class="col"></div>`);
     const trophyHtml = record.trophies.length
       ? `<div class="card center pop-in"><div class="cabinet" style="justify-content:center">
-          ${record.trophies.map(tn => `<div class="trophy-item">${T.Vis.trophy(tn === "Cup" ? "cup" : "cup")}<span>${tn}</span></div>`).join("")}
+          ${record.trophies.map(tn => `<div class="trophy-item">${T.Vis.trophy("cup")}<span>${tn}</span></div>`).join("")}
         </div></div>`
       : ``;
     const awardsHtml = (record.awards && record.awards.length)
@@ -538,6 +538,8 @@
         <div class="muted" style="font-size:12px;margin-bottom:4px">Season form (per match rating)</div>
         ${T.Vis.sparkline(record.matchRatings)}
       </div>
+
+      ${record.finish ? `<div class="card">${T.Vis.leaguePos(record.finish, 20)}</div>` : ``}
 
       ${record.table ? `<div class="card">
         <div class="row between" style="margin-bottom:6px">
@@ -773,21 +775,11 @@
   };
 
   // ---- Small render helpers ------------------------------------------
-  function statBar(k, v) {
-    return `<div class="stat">
-      <div class="top"><span>${lbl(k)}</span><span class="val">${v}</span></div>
-      <div class="bar"><span style="width:${v}%"></span></div>
-    </div>`;
-  }
   function chip(label, val) {
     return `<div class="center"><div class="muted" style="font-size:11px">${label}</div><b>${val}</b></div>`;
   }
   function projChip(label, val, delta) {
     return `<div class="center"><div class="muted" style="font-size:11px">${label}</div><b>${val}${delta || ""}</b></div>`;
-  }
-  function ordinal(n) {
-    const s = ["th", "st", "nd", "rd"], v = n % 100;
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
   }
 
   // ---- Juice: lightweight confetti -----------------------------------

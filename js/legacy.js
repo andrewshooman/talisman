@@ -22,11 +22,13 @@
     const diffMult = T.CLUB_TIERS[startTier].legacyMult;
 
     // FWD-weighted output. (Branch by position in later phases.)
+    const caps = (g.player && g.player.caps) || 0;
     const output =
       t.goals * 4 +
       t.assists * 2.5 +
       t.trophies * 60 +
-      t.awards * 80;
+      t.awards * 80 +
+      caps * 1.2;                                // international career counts
 
     const peak = (t.peakRating - 6) * 120;       // reward a high ceiling
     const longevity = g.history.length * 18;     // seasons played
@@ -38,7 +40,7 @@
       score,
       tier: Legacy.tierFor(score),
       breakdown: { output: Math.round(output), peak: Math.round(peak),
-                   longevity, diffMult, startTier },
+                   longevity, caps, diffMult, startTier },
     };
   };
 

@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.5.0";
+  T.VERSION = "0.6.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -114,13 +114,16 @@
   };
 
   // ---- Legacy ranking tiers (ascending) ------------------------------
+  // Calibrated against ~1500 simulated near-optimal careers (see PROJECT_NOTES
+  // tuning log, 2026-06-22): median strong career ~Legend, Immortal ~top 15%,
+  // GOAT ~top 1-2% — so the top tiers are a genuine achievement, not the default.
   T.LEGACY_TIERS = [
     { name: "Squad Player", min: 0 },
-    { name: "Cult Hero",    min: 250 },
-    { name: "Star",         min: 600 },
-    { name: "Legend",       min: 1200 },
-    { name: "Immortal",     min: 2200 },
-    { name: "GOAT",         min: 3600 },
+    { name: "Cult Hero",    min: 1200 },
+    { name: "Star",         min: 2400 },
+    { name: "Legend",       min: 3600 },
+    { name: "Immortal",     min: 4600 },
+    { name: "GOAT",         min: 5500 },
   ];
 
   // ---- Fictional flavor data (legally clean: no real names/crests) ----
