@@ -202,15 +202,35 @@ T.game = {
 ## Balance audit & how to re-run it
 
 A headless harness validates the sim without the DOM: `node`-load the logic modules
-(`data, state, league, engine, progression, legacy`) with a `global.window = {}` shim,
-then loop `runSeason → finalizeSeason → rollInjury → rollCareerEndInjury →
-advanceSeason` for full careers. It does **not** need visuals/minigames/ui/moments —
-key moments are optional boosts, so the core sim runs clean headless. Measure career
-goals/assists, peak & prime-season goals, awards, caps, legacy score percentiles, and
-the final-tier histogram. (Throwaway scripts lived in `/tmp`; re-create as needed.)
+(`data, state, league, engine, progression, legacy` — add `visuals, moments` for a
+**faithful** run) with a `global.window = {}` shim. The faithful loop mirrors
+`ui.playSeason`/`enterSeason`: per season, roll+apply a season event, train, `rollForm`,
+`runSeason`, then play each key moment by modelling mini-game skill from the chosen stat
+(`skill ≈ 0.45 + (stat-55)/110 + noise`), `Moments.resolve` → apply form/morale deltas →
+`Engine.applyMoment` on success; then `finalizeSeason → runPromRel → rollInjury →
+rollCareerEndInjury → advanceSeason`. Measure season goals **per division**, awards/season,
+legacy percentiles, the final-tier histogram, and per-start-tier medians + division-time
+(to check the difficulty multiplier and the climb). Without moments/events the core sim
+still runs (they're optional boosts). (Throwaway scripts lived in `/tmp`; re-create as needed.)
 
 ## Tuning log (append each pass — most recent first)
 
+- _2026-06-22 (full-integration rebalance, v0.9.1)_ — After the pyramid + 8 key moments +
+  season events landed, a **faithful** harness (1200 careers, all systems) showed the
+  economy had re-inflated: **68% of careers ranked GOAT**, and a dominant Prime League
+  striker won **1.32 awards/season**. Also found a bug: `rollAwards` checked
+  `trophies.includes("League Title")` but titles are named per division since the pyramid
+  (e.g. "Prime League Title"), so the POTS "won the title" path was dead — fixed to
+  `/Title$/`. **Fixes:** (1) award bar now scales with division
+  `rivalGoals = randInt(26,34)+(tier-2)*2`, `rivalAssists 16..23`, POTS finish ≤ 2 /
+  rating ≥ 7.7, Young POTS goals ≥ 20, intlReady ovr ≥ 76, intlStar rating ≥ 7.9 →
+  awards now ~0.7/season at the top, less below. (2) `MAX_GOALS 30→27`, `MAX_ASSISTS 18→16`
+  to trim the goal tail (Prime mean 31→28). (3) recalibrated `LEGACY_TIERS` to
+  `0 / 1800 / 3400 / 4700 / 5900 / 7000`. **Result:** Legend is the median, Immortal ~14%,
+  GOAT ~3%; medians fall monotonically by easier start (tier1 5825 → tier5 4200) and GOAT
+  concentrates in tier-1 starts (12% vs 0% at tier5), so the difficulty multiplier rewards
+  starting at the bottom and climbing. The pyramid climb is a real arc (a tier-1 career
+  spends ~4 seasons in L2 before rising to Prime over ~7).
 - _2026-06-22 (league pyramid)_ — Built the four-division English-style pyramid (80
   recognisable clubs), promotion/relegation, and bumped key moments 4 → 8. Validated
   headlessly over 300 careers: every division stays at 20 clubs with exactly one player

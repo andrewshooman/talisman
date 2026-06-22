@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.9.0";
+  T.VERSION = "0.9.1";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -114,16 +114,16 @@
   };
 
   // ---- Legacy ranking tiers (ascending) ------------------------------
-  // Calibrated against ~1500 simulated near-optimal careers (see PROJECT_NOTES
-  // tuning log, 2026-06-22): median strong career ~Legend, Immortal ~top 15%,
-  // GOAT ~top 1-2% — so the top tiers are a genuine achievement, not the default.
+  // Recalibrated against ~1200 fully-integrated simulated careers (events + 8 key
+  // moments + pro/rel; see PROJECT_NOTES tuning log, 2026-06-22 #2): a well-played
+  // career lands ~Legend median, Immortal ~top 18%, GOAT ~top 3-4%.
   T.LEGACY_TIERS = [
     { name: "Squad Player", min: 0 },
-    { name: "Cult Hero",    min: 1200 },
-    { name: "Star",         min: 2400 },
-    { name: "Legend",       min: 3600 },
-    { name: "Immortal",     min: 4600 },
-    { name: "GOAT",         min: 5500 },
+    { name: "Cult Hero",    min: 1800 },
+    { name: "Star",         min: 3400 },
+    { name: "Legend",       min: 4700 },
+    { name: "Immortal",     min: 5900 },
+    { name: "GOAT",         min: 7000 },
   ];
 
   // ---- League pyramid (English-style, legally distinct) ---------------
@@ -291,8 +291,8 @@
 
   // ---- Tuning constants for the sim engine (see engine.js) ------------
   T.TUNING = {
-    MAX_GOALS: 30,        // soft cap for a god-tier striker season
-    MAX_ASSISTS: 18,
+    MAX_GOALS: 27,        // soft cap for a god-tier striker season (key moments add more)
+    MAX_ASSISTS: 16,
     BASE_INJURY_CHANCE: 0.12,    // per season, before modifiers
     CAREER_END_INJURY_CHANCE: 0.015, // rare catastrophic
     XP_PER_LEVEL: 100,
