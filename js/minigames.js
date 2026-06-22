@@ -12,10 +12,11 @@
         onDone : fn({ skill: 0..1, text }) called when the player finishes
      T.Minigames.scene(kind) -> SVG string (goal/pitch backdrop)
 
-   Game types: "timingBar" | "aimTarget" | "reactionTap"
+   Game types:
+     "timingBar" | "aimTarget" | "reactionTap" | "dribbleDodge" |
+     "oneOnOne" | "freeKick" | "oneTwo"
 
-   TODO (future): add more types (1v1 dribble dodge, header timing),
-   difficulty scaling per opponent, haptics, sound.
+   TODO (future): difficulty scaling per opponent, haptics, sound.
    ============================================================ */
 (function () {
   const T = window.TALISMAN;
@@ -334,58 +335,237 @@
   };
 
   // ---------------------------------------------------------------
+  // 6) FREE KICK — curl it over the wall. First set POWER (a sweeping
+  //    meter, land it in the gold band), then PLACEMENT (an aim line
+  //    sweeps across goal — pick the corner, clear the wall). Skill
+  //    blends both; a low shot into the wall is charged down.
+  //    Good for: dead-ball specialists, set-piece moments.
+  // ---------------------------------------------------------------
+  MG._games.freeKick = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const tx = T.rng() < 0.5 ? 13 : 87;                 // target corner
+    const pzW = 16 + (stat / 99) * 22;                  // power gold band width
+    const pzL = T.clamp(54 - pzW / 2 + T.rand(-10, 10), 24, 94 - pzW);
+    const wallL = 36, wallR = 64;                        // wall blocks low centre
+    const pSpeed = 1.5 - (stat / 99) * 0.5;
+    const aSpeed = 1.3 - (stat / 99) * 0.45;
+
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Curl it over the wall — set <b>power</b>, then <b>placement</b></div>
+        <div class="goal fk-goal">
+          <div class="target" style="left:${tx}%;top:20%"></div>
+          <div class="fk-wall"></div>
+          <div class="aim-x" id="ax" style="display:none"></div>
+          <div class="ball" id="ball" style="left:50%;top:90%"></div>
+        </div>
+        <div class="mg-track" id="ptrack">
+          <div class="mg-zone" style="left:${pzL}%;width:${pzW}%"></div>
+          <div class="mg-zone perfect" style="left:${pzL + pzW * 0.34}%;width:${pzW * 0.32}%"></div>
+          <div class="mg-marker" id="pmk"></div>
+        </div>
+        <button class="btn primary" id="go">SET POWER</button>
+      </div>`;
+
+    const pmk = host.querySelector("#pmk");
+    const ax = host.querySelector("#ax");
+    const ball = host.querySelector("#ball");
+    const goBtn = host.querySelector("#go");
+    const pCenter = pzL + pzW / 2;
+
+    let phase = 0, pos = 0, dir = 1, powerScore = 0, done = false;
+    (function loop() {
+      if (phase === 0) {
+        pos += dir * pSpeed; if (pos >= 100) { pos = 100; dir = -1; } if (pos <= 0) { pos = 0; dir = 1; }
+        pmk.style.left = pos + "%";
+      } else if (phase === 1) {
+        pos += dir * aSpeed; if (pos >= 100) { pos = 100; dir = -1; } if (pos <= 0) { pos = 0; dir = 1; }
+        ax.style.left = pos + "%";
+      }
+      _raf = requestAnimationFrame(loop);
+    })();
+
+    goBtn.onclick = () => {
+      if (done) return;
+      if (phase === 0) {
+        powerScore = T.clamp(1 - Math.abs(pos - pCenter) / (pzW * 0.9), 0, 1);
+        pmk.style.left = pos + "%"; flash(pmk, powerScore);
+        phase = 1; pos = 0; dir = 1;
+        ax.style.display = "block";
+        goBtn.textContent = "BEND IT";
+      } else if (phase === 1) {
+        done = true; stopLoop();
+        const x = pos;
+        ax.style.left = x + "%"; ax.classList.add("locked");
+        ball.style.left = x + "%"; ball.style.top = "22%";
+        const aimScore = T.clamp(1 - Math.abs(x - tx) / 62, 0, 1);
+        const blocked = (x > wallL && x < wallR && powerScore < 0.5);
+        let skill = T.clamp(powerScore * 0.45 + aimScore * 0.55, 0, 1);
+        let text;
+        if (blocked) { skill *= 0.3; text = "Smacked the wall."; }
+        else if (skill > 0.82) text = "Whipped it into the top corner!";
+        else if (skill > 0.5) text = "Good hit — keeper scrambling.";
+        else text = "Dragged off target.";
+        flash(ball, skill);
+        setTimeout(() => onDone({ skill, text }), 280);
+      }
+    };
+  };
+
+  // ---------------------------------------------------------------
+  // 7) ONE-TWO — a give-and-go rhythm. Three taps in sequence (PASS →
+  //    RETURN → FINISH); each time a marker sweeps a track, stop it in
+  //    the gold zone. Your combined timing is the skill. Higher stat =
+  //    wider zones. Good for: link-up play, quick combinations.
+  // ---------------------------------------------------------------
+  MG._games.oneTwo = function (host, opts, onDone) {
+    const stat = opts.statVal || 50;
+    const steps = ["PASS", "RETURN", "FINISH"];
+    const zoneW = 16 + (stat / 99) * 22;
+    const speed = 1.4 - (stat / 99) * 0.45;
+
+    host.innerHTML = `
+      <div class="mg">
+        <div class="mg-hint">Give &amp; go — stop each pass in the gold zone</div>
+        <div class="ot-steps" id="steps">
+          ${steps.map((s, i) => `<span class="ot-step" data-i="${i}">${s}</span>`).join("")}
+        </div>
+        <div class="mg-track">
+          <div class="mg-zone" id="zone"></div>
+          <div class="mg-marker" id="mk"></div>
+        </div>
+        <button class="btn primary" id="hit" data-step="0">PASS</button>
+      </div>`;
+
+    const mk = host.querySelector("#mk");
+    const zone = host.querySelector("#zone");
+    const hit = host.querySelector("#hit");
+    const stepEls = host.querySelectorAll(".ot-step");
+    let step = 0, pos = 0, dir = 1, done = false;
+    const scores = [];
+
+    const placeZone = () => {
+      const left = T.clamp(T.rand(8, 92 - zoneW), 4, 92 - zoneW);
+      zone.style.left = left + "%"; zone.style.width = zoneW + "%";
+      zone.dataset.center = left + zoneW / 2;
+    };
+    placeZone();
+
+    (function loop() {
+      pos += dir * speed; if (pos >= 100) { pos = 100; dir = -1; } if (pos <= 0) { pos = 0; dir = 1; }
+      mk.style.left = pos + "%";
+      _raf = requestAnimationFrame(loop);
+    })();
+
+    hit.onclick = () => {
+      if (done) return;
+      const center = +zone.dataset.center;
+      const s = T.clamp(1 - Math.abs(pos - center) / (zoneW * 0.95), 0, 1);
+      scores.push(s);
+      stepEls[step].classList.add(s > 0.5 ? "good" : "bad");
+      flash(mk, s);
+      step++;
+      if (step >= steps.length) {
+        done = true; stopLoop();
+        const skill = T.clamp(scores.reduce((a, b) => a + b, 0) / scores.length, 0, 1);
+        const text = skill > 0.8 ? "Slick one-two — and finished!" : skill > 0.5 ? "Worked the angle nicely." : "The move broke down.";
+        setTimeout(() => onDone({ skill, text }), 260);
+        return;
+      }
+      // next leg
+      dir = 1; pos = 0; placeZone();
+      hit.textContent = steps[step];
+      hit.dataset.step = step;
+    };
+  };
+
+  // ---------------------------------------------------------------
   // SVG stadium scenes (visual backdrop above the game).
   // ---------------------------------------------------------------
   MG.scene = function (kind) {
-    // A simple floodlit goal + pitch, themed with CSS vars via inline colors.
+    const isPitch = kind === "pitch";       // open-play backdrop (dribble / one-two)
+    const isWall = kind === "wall";         // free-kick: defensive wall in front of goal
     return `
     <svg class="scene" viewBox="0 0 360 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
       <defs>
         <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#12121a"/><stop offset="1" stop-color="#0a0a0f"/>
+          <stop offset="0" stop-color="#15151f"/><stop offset="1" stop-color="#0a0a0f"/>
         </linearGradient>
-        <radialGradient id="flood" cx="0.5" cy="0" r="1">
-          <stop offset="0" stop-color="rgba(245,196,81,0.18)"/>
+        <radialGradient id="flood" cx="0.5" cy="0" r="1.1">
+          <stop offset="0" stop-color="rgba(245,196,81,0.22)"/>
           <stop offset="1" stop-color="rgba(245,196,81,0)"/>
         </radialGradient>
+        <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#16331d"/><stop offset="1" stop-color="#0c1f12"/>
+        </linearGradient>
       </defs>
       <rect width="360" height="150" fill="url(#sky)"/>
+      <!-- floodlight beams -->
+      <polygon points="40,0 18,0 70,86 96,86" fill="rgba(245,196,81,0.05)"/>
+      <polygon points="320,0 342,0 290,86 264,86" fill="rgba(90,209,255,0.05)"/>
       <rect width="360" height="150" fill="url(#flood)"/>
-      <!-- crowd dots -->
+      <!-- stands + crowd -->
+      <rect x="0" y="0" width="360" height="86" fill="#0d0d15"/>
       ${crowd()}
-      <!-- pitch -->
-      <polygon points="0,150 360,150 300,86 60,86" fill="#0f1f12"/>
-      <polygon points="60,86 300,86 300,88 60,88" fill="#16301c"/>
-      <!-- goal -->
-      <g stroke="#e9e9f2" stroke-width="2" fill="none" opacity="0.85">
-        <rect x="135" y="58" width="90" height="34"/>
-        <line x1="135" y1="58" x2="120" y2="50"/>
-        <line x1="225" y1="58" x2="240" y2="50"/>
-        <line x1="120" y1="50" x2="240" y2="50"/>
-      </g>
-      <!-- net hint -->
-      <g stroke="rgba(233,233,242,0.18)" stroke-width="0.6">
-        ${net()}
-      </g>
+      <!-- floodlight pylons -->
+      <g fill="#2a2a3a"><rect x="34" y="6" width="3" height="30"/><rect x="323" y="6" width="3" height="30"/>
+        <circle cx="35" cy="6" r="4" fill="rgba(245,196,81,.5)"/><circle cx="325" cy="6" r="4" fill="rgba(245,196,81,.5)"/></g>
+      <!-- pitch with mown stripes -->
+      <polygon points="0,150 360,150 300,86 60,86" fill="url(#grass)"/>
+      ${stripes()}
+      <polygon points="60,86 300,86 300,88 60,88" fill="#1d3a25"/>
+      ${isPitch ? `
+        <!-- centre circle for open play -->
+        <ellipse cx="180" cy="124" rx="46" ry="14" fill="none" stroke="rgba(233,233,242,.16)" stroke-width="1.2"/>
+        <line x1="0" y1="118" x2="360" y2="118" stroke="rgba(233,233,242,.10)" stroke-width="1"/>
+        <circle cx="180" cy="124" r="2.4" fill="rgba(233,233,242,.4)"/>
+      ` : `
+        <!-- goal -->
+        <g stroke="#eef" stroke-width="2.4" fill="none" opacity="0.92">
+          <rect x="132" y="54" width="96" height="38"/>
+          <line x1="132" y1="54" x2="116" y2="46"/>
+          <line x1="228" y1="54" x2="244" y2="46"/>
+          <line x1="116" y1="46" x2="244" y2="46"/>
+        </g>
+        <g stroke="rgba(233,233,242,0.16)" stroke-width="0.6">${net()}</g>
+        <!-- keeper -->
+        <g transform="translate(180,74)"><circle cx="0" cy="-9" r="4" fill="#5ad1ff"/>
+          <rect x="-6" y="-5" width="12" height="16" rx="3" fill="rgba(90,209,255,.7)"/></g>
+        ${isWall ? `<!-- defensive wall -->
+          <g fill="#202031" stroke="#11111a" stroke-width="0.5">
+            ${[150, 162, 174, 186, 198].map(x => `<rect x="${x}" y="98" width="9" height="22" rx="2"/>`).join("")}
+          </g>` : ``}
+      `}
       <!-- ball -->
-      <circle cx="180" cy="128" r="5" fill="#f5f5f7" stroke="#0a0a0f" stroke-width="0.6"/>
+      <circle cx="180" cy="${isPitch ? 134 : 130}" r="5" fill="#f8f8fc" stroke="#0a0a0f" stroke-width="0.6"/>
+      <ellipse cx="180" cy="${isPitch ? 139 : 135}" rx="6" ry="1.6" fill="rgba(0,0,0,.4)"/>
     </svg>`;
   };
 
   function crowd() {
     let s = "";
-    for (let i = 0; i < 90; i++) {
-      const x = (i * 4.1) % 360;
-      const y = 10 + ((i * 7) % 40);
-      const c = ["#2a2a3a", "#33334a", "#222230"][i % 3];
-      s += `<circle cx="${x.toFixed(0)}" cy="${y}" r="1.4" fill="${c}"/>`;
+    for (let i = 0; i < 150; i++) {
+      const x = (i * 2.41) % 360;
+      const y = 8 + ((i * 11) % 70);
+      const c = ["#2a2a3a", "#33334a", "#222230", "#3a3450"][i % 4];
+      s += `<circle cx="${x.toFixed(0)}" cy="${y}" r="1.3" fill="${c}"/>`;
+    }
+    return s;
+  }
+  function stripes() {
+    let s = "";
+    // alternating mown bands receding toward the goal line
+    for (let i = 0; i < 6; i += 2) {
+      const y0 = 150 - i * 10.6, y1 = 150 - (i + 1) * 10.6;
+      const xa = (i / 6) * 60, xb = ((i + 1) / 6) * 60;
+      s += `<polygon points="${xa},${y0} ${360 - xa},${y0} ${360 - xb},${y1} ${xb},${y1}" fill="rgba(255,255,255,0.018)"/>`;
     }
     return s;
   }
   function net() {
     let s = "";
-    for (let x = 138; x < 225; x += 8) s += `<line x1="${x}" y1="58" x2="${x}" y2="92"/>`;
-    for (let y = 62; y < 92; y += 7) s += `<line x1="135" y1="${y}" x2="225" y2="${y}"/>`;
+    for (let x = 135; x <= 228; x += 8) s += `<line x1="${x}" y1="54" x2="${x}" y2="92"/>`;
+    for (let y = 58; y < 92; y += 7) s += `<line x1="132" y1="${y}" x2="228" y2="${y}"/>`;
     return s;
   }
 

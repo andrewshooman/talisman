@@ -466,3 +466,67 @@ input[type="text"], select {
 }
 .fx-chip.good { color: var(--good); border-color: rgba(74,222,128,.4); }
 .fx-chip.bad { color: var(--bad); border-color: rgba(248,113,113,.4); }
+
+/* ============================================================
+   New mini-games: free kick + give-and-go
+   ============================================================ */
+
+/* Free kick — defensive wall in front of goal */
+.fk-goal { height: 190px; }
+.fk-wall {
+  position: absolute; left: 35%; width: 30%; bottom: 6%; height: 30%;
+  background: repeating-linear-gradient(90deg, #23233a 0 8px, #11111a 8px 11px);
+  border: 1px solid #11111a; border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,.5);
+}
+
+/* Give-and-go — three rhythm steps */
+.ot-steps { display: flex; gap: 8px; justify-content: center; }
+.ot-step {
+  flex: 1; max-width: 120px; text-align: center; font-size: 12px; font-weight: 800;
+  padding: 7px 0; border-radius: 9px; color: var(--muted); letter-spacing: .05em;
+  background: var(--bg-3); border: 1px solid var(--line);
+  transition: transform .1s ease;
+}
+.ot-step.good { color: var(--good); border-color: rgba(74,222,128,.45); background: rgba(74,222,128,.10); transform: translateY(-2px); }
+.ot-step.bad  { color: var(--bad);  border-color: rgba(248,113,113,.45); background: rgba(248,113,113,.10); }
+
+/* ============================================================
+   Visual polish — menus, cards, scenes, mini-games
+   ============================================================ */
+
+/* Buttons: subtle depth + a lift on hover (desktop) */
+.btn { box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+.btn.primary { box-shadow: 0 4px 16px rgba(245,196,81,.22); }
+@media (hover: hover) {
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost:hover { background: rgba(255,255,255,.03); }
+  .card.lift:hover { transform: translateY(-2px); }
+}
+
+/* Cards: a faint top sheen so surfaces read as raised */
+.card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.025), transparent 40%),
+    var(--bg-2);
+}
+
+/* Title brand: gentle living glow */
+.brand { animation: brandGlow 3.4s ease-in-out infinite alternate; }
+@keyframes brandGlow {
+  from { text-shadow: 0 0 18px rgba(245,196,81,.18); }
+  to   { text-shadow: 0 0 30px rgba(245,196,81,.40); }
+}
+
+/* Scenes: a touch taller with an inner vignette for depth */
+.scene { height: 150px; }
+.scene-wrap { position: relative; box-shadow: inset 0 -24px 40px rgba(0,0,0,.45); }
+
+/* Mini-game marker: brighter, rounded, with a glow trail */
+.mg-marker { border-radius: 2px; box-shadow: 0 0 12px rgba(255,255,255,.7); }
+.mg-track { box-shadow: inset 0 2px 6px rgba(0,0,0,.4); }
+.mg-zone.perfect { box-shadow: 0 0 12px rgba(245,196,81,.5); }
+
+/* Result flash helper class (mini-game success/fail pop) */
+.mg-flash { animation: mgFlash .4s ease; }
+@keyframes mgFlash { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }

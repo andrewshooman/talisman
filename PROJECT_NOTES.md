@@ -94,6 +94,18 @@ T.game = {
   expected; it animates fine on a visible page. Don't "fix" the frozen-marker symptom.
 - To add a game type: add to `MG._games`, render into `host`, call `onDone({skill,text})`,
   and add matching CSS in styles.css. Always honor the rAF cleanup (`stopLoop`).
+- **7 game types** (v0.8.0): timingBar · aimTarget · reactionTap · dribbleDodge ·
+  oneOnOne · **freeKick** (two-phase: power meter then aim, with a wall that charges down
+  low shots) · **oneTwo** (three-tap give-and-go rhythm, scores averaged). Scenarios pick
+  a game per choice via `game.type`; new scenarios `free_kick_edge` & `give_and_go` use
+  them (pool is now 10, 8 picked/season).
+- **`MG.scene(kind)`** varies the SVG backdrop by `moment.scene`: `goal` (default, with
+  keeper + net), `wall` (adds a free-kick wall), `pitch` (open play — centre circle, no
+  goal). Shared helpers: `crowd()`, `stripes()` (mown pitch depth), `net()`. Add a new
+  backdrop by branching on `kind`; set `scene` on the moment in `moments.js`.
+- Validate new games structurally headless (no jsdom): assert `MG._games[type]` exists for
+  every `choice.game.type`, every `choice.stat` is a FWD stat, and `MG.scene(kind)` returns
+  SVG — the rAF/DOM loop itself can't run headless (see frozen-marker note above).
 
 ## Visuals (visuals.js)
 

@@ -97,17 +97,22 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
       goal to its real fixture, so with more moments the user's mini-game performance
       moves more matches → shifts the table, the title race, and who gets promoted.
 
-### Phase 1.5 follow-ups (NEXT — requested)
+### Phase 1.5 follow-ups
 
-- [ ] **New mini-game types** (`minigames.js`): add more skill games beyond the current 5
-      (timingBar / aimTarget / reactionTap / dribbleDodge / oneOnOne) and map them to the
-      8 key-moment scenarios. Ideas: free-kick curl (bend over a wall), keeper one-on-one
-      reaction save (if GK lands), give-and-go passing combo, headed-aim power+placement.
-- [ ] **Improved mini-game visuals** (`minigames.js` scenes + CSS): richer SVG stadium
-      scenes per game (pitch depth, crowd, goal net, keeper), clearer hit/zone feedback,
-      and a result flourish. Make each game read like a moment, not a bar.
-- [ ] **Menu / screen visual polish** (`styles.css` + `ui.js`): lift the title, hub,
-      results and retirement screens — division crest banner, club nickname, transitions.
+- [x] **New mini-game types** (`minigames.js`): added **Free Kick** (set power, then curl
+      it over a defensive wall) and **Give & Go** (a three-tap one-two rhythm) — now 7
+      total. Two new scenarios (`free_kick_edge`, `give_and_go`) use them, so the moment
+      pool is 10 (8 picked/season). All wired to the `onDone({skill,text})` contract.
+- [x] **Improved mini-game visuals** (`minigames.js` scenes + CSS): `MG.scene(kind)` now
+      varies by kind (`goal` / `wall` / `pitch`) with floodlight beams & pylons, a denser
+      crowd, mown-stripe pitch depth, a keeper, and a free-kick wall; marker/zone glow,
+      track inset shadow, and a scene vignette. Scenes read like a moment, not a bar.
+- [x] **Menu / screen visual polish** (`styles.css`): button depth + hover lift, card top
+      sheen, a living title-brand glow, taller scenes. _Further screen-level polish
+      (division crest banner, transitions, count-ups) remains open under Phase 2._
+- [ ] **More new games (ideas):** headed power+placement (jump-timing then aim), a keeper
+      reaction-save (for when GK lands in Phase 3), a long-shot swerve meter. Context-map
+      games to scenarios (free kick only on set-pieces, one-two in open play).
 
 ---
 
@@ -149,7 +154,8 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
 
 ## Now / Next / Later (quick view)
 
-- **Now:** New mini-game types + improved mini-game/menu visuals (Phase 1.5 follow-ups).
-- **Next:** Transfers between clubs · spin/event screen · context-aware moments ·
-  retirement polish (defining moments from `momentsLog`).
+- **Now:** Transfers between clubs · spin/event screen · context-aware moment selection
+  (free kick only on set-pieces, one-two in open play).
+- **Next:** Retirement polish (defining moments from `momentsLog`) · awards in Hall of
+  Fame/share · more mini-games (headed power, long-shot swerve) · screen count-ups.
 - **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.
