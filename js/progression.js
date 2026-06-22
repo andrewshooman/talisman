@@ -227,6 +227,116 @@
     };
   };
 
+  // ---- Season-opening events (the "spin") ----------------------------
+  // A narrative situation at the start of a season with a choice that nudges
+  // morale / form / fitness / training points. Pure data + a generic applier so
+  // the UI stays dumb. `when(p,g)` gates which events are eligible.
+  Prog.SEASON_EVENTS = [
+    {
+      id: "newManager", icon: "📋", title: "New Manager",
+      text: "The board appoints a new manager with big ideas for the season.",
+      options: [
+        { label: "Buy into the project", desc: "Embrace the new philosophy.",
+          effects: { morale: 8, form: 1 }, text: "You're energised by the new regime." },
+        { label: "Keep your head down", desc: "Let your football do the talking.",
+          effects: { training: 1 }, text: "You focus on your own game and put in the work." },
+      ],
+    },
+    {
+      id: "captaincy", icon: "🎖", title: "The Armband",
+      when: (p, g) => p.age >= 24 || p.level >= 4,
+      text: "The manager offers you the captain's armband.",
+      options: [
+        { label: "Wear it with pride", desc: "Lead the dressing room.",
+          effects: { morale: 10, form: 2 }, text: "You lead from the front — the squad responds." },
+        { label: "Lead quietly", desc: "Set the example without the title.",
+          effects: { morale: 4, fitness: 3 }, text: "You let your standards speak instead." },
+      ],
+    },
+    {
+      id: "preseasonCamp", icon: "🏕", title: "Pre-Season Camp",
+      text: "An intense pre-season training camp is on the schedule.",
+      options: [
+        { label: "Push to the limit", desc: "Bank the work, pay in fatigue.",
+          effects: { training: 2, fitness: -4 }, text: "Brutal sessions — but you're sharper for it." },
+        { label: "Balanced preparation", desc: "Build steadily into the season.",
+          effects: { training: 1, fitness: 3 }, text: "A measured camp leaves you fresh and ready." },
+      ],
+    },
+    {
+      id: "injuryScare", icon: "🩹", title: "Pre-Season Knock",
+      when: (p) => p.fitness < 96,
+      text: "You pick up a knock in a friendly. The physios are cautious.",
+      options: [
+        { label: "Play through it", desc: "You don't want to lose your place.",
+          effects: { fitness: -2, morale: 3 }, text: "You grit through it — the manager notes your steel." },
+        { label: "Rest and recover", desc: "Take the time to heal properly.",
+          effects: { fitness: 9, training: -1 }, text: "A proper rest — you come back fully fit." },
+      ],
+    },
+    {
+      id: "rivalryHype", icon: "🔥", title: "Rivalry Hype",
+      text: "The media stoke a grudge match ahead of the season opener.",
+      options: [
+        { label: "Embrace the spotlight", desc: "Feed off the big-game energy.",
+          effects: { morale: 6, form: 2 }, text: "You thrive on the noise — bring it on." },
+        { label: "Tune out the noise", desc: "Stay ice-cold and focused.",
+          effects: { morale: 3, fitness: 2 }, text: "You block it all out and prepare calmly." },
+      ],
+    },
+    {
+      id: "contractTalks", icon: "✍️", title: "Contract Talks",
+      when: (p, g) => g.season >= 2,
+      text: "The club table improved terms to keep you around.",
+      options: [
+        { label: "Sign the extension", desc: "Security and a vote of confidence.",
+          effects: { morale: 9 }, text: "Pen to paper — the fans are delighted." },
+        { label: "Hold out for more", desc: "Bet on yourself.",
+          effects: { morale: 3, training: 1 }, text: "You back yourself and knuckle down." },
+      ],
+    },
+    {
+      id: "bootDeal", icon: "👟", title: "Boot Deal",
+      when: () => T.overall() >= 70,
+      text: "A boot sponsor comes calling with a flashy offer.",
+      options: [
+        { label: "Cash in", desc: "Enjoy the limelight.",
+          effects: { morale: 7 }, text: "New boots, new buzz — you're loving life." },
+        { label: "Stay hungry", desc: "Keep your edge.",
+          effects: { form: 3 }, text: "You park the hype and sharpen your game." },
+      ],
+    },
+    {
+      id: "fanFavourite", icon: "💛", title: "Fans' Player of the Year",
+      when: (p, g) => g.totals.goals >= 20,
+      text: "The supporters' club names you their player of the year.",
+      options: [
+        { label: "Soak it up", desc: "You've earned this.",
+          effects: { morale: 8 }, text: "The adoration lifts you — what a feeling." },
+        { label: "Promise them more", desc: "Set the bar higher.",
+          effects: { morale: 3, form: 2 }, text: "You vow to repay them with goals." },
+      ],
+    },
+  ];
+
+  // Roll a season-opening event (or null for a quiet pre-season).
+  Prog.rollSeasonEvent = function () {
+    if (T.rng() > (T.TUNING.SEASON_EVENT_CHANCE || 0.8)) return null;
+    const g = T.game, p = g.player;
+    const pool = Prog.SEASON_EVENTS.filter(e => !e.when || e.when(p, g));
+    return pool.length ? T.pick(pool) : null;
+  };
+
+  // Apply a chosen option's effects; returns { text, fx:[{label,delta}] } for the UI.
+  Prog.applyEvent = function (option) {
+    const p = T.game.player, e = option.effects || {}, fx = [];
+    if (e.morale) { p.morale = T.clamp(p.morale + e.morale, 0, 100); fx.push({ label: "Morale", delta: e.morale }); }
+    if (e.form) { p.form = T.clamp(p.form + e.form, -10, 10); fx.push({ label: "Form", delta: e.form }); }
+    if (e.fitness) { p.fitness = T.clamp(p.fitness + e.fitness, 0, 100); fx.push({ label: "Fitness", delta: e.fitness }); }
+    if (e.training) { p.trainingPoints = Math.max(0, p.trainingPoints + e.training); fx.push({ label: "Training pts", delta: e.training }); }
+    return { text: option.text, fx };
+  };
+
   // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.
   Prog.generateOffers = function () { return []; };
 })();

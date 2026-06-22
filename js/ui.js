@@ -54,7 +54,7 @@
     `;
     wrap.querySelector("#new").onclick = () => UI.show("create");
     const cont = wrap.querySelector("#continue");
-    if (cont) cont.onclick = () => { if (T.load()) UI.show(T.game.careerOver ? "retirement" : "hub"); };
+    if (cont) cont.onclick = () => { if (T.load()) { T.game.careerOver ? UI.show("retirement") : UI.enterSeason(); } };
     wrap.querySelector("#daily").onclick = () => UI.startDaily();
     wrap.querySelector("#hof").onclick = () => UI.show("halloffame");
     wrap.querySelector("#help").onclick = () => UI.show("glossary", { from: "title" });
@@ -77,7 +77,7 @@
     T.newGame(opts);
     T.game.daily = T.todayKey();
     T.save();
-    UI.show("hub");
+    UI.enterSeason();
   };
 
   // ---- Player creation (FWD) -----------------------------------------
@@ -181,7 +181,7 @@
       draft.nation = wrap.querySelector("#nation").value;
       T.newGame(draft);
       T.save();
-      UI.show("hub");
+      UI.enterSeason();
     };
     return wrap;
   };
@@ -358,6 +358,61 @@
       };
       list.appendChild(b);
     });
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+  };
+
+  // ---- Season entry: show a one-off season-opening event, then the hub ----
+  // Idempotent per season (game.eventShownFor), so resuming a save won't re-roll.
+  UI.enterSeason = function () {
+    const g = T.game;
+    if (g && g.eventShownFor !== g.season) {
+      g.eventShownFor = g.season;
+      const ev = T.Prog.rollSeasonEvent();
+      T.save();
+      if (ev) { UI.showSpin(ev); return; }
+    }
+    UI.show("hub");
+  };
+
+  // The "spin": a narrative season-opening choice (UI.screens-style helper).
+  UI.showSpin = function (ev) {
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div style="height:3vh"></div>
+      <div class="center"><div class="pill gold pop-in" style="align-self:center">SEASON ${T.game.season} · PRE-SEASON</div></div>
+      <div class="card center pop-in">
+        <div style="font-size:38px;line-height:1">${ev.icon || "📰"}</div>
+        <h2 style="margin:6px 0 4px">${ev.title}</h2>
+        <p style="margin:0;color:var(--text)">${ev.text}</p>
+      </div>
+      <div class="col" id="opts"></div>
+      <div class="muted center" style="font-size:12px">How you respond shapes your season start.</div>
+    `;
+    const opts = wrap.querySelector("#opts");
+    ev.options.forEach(option => {
+      const b = el(`<button class="btn perk-pick"><b>${option.label}</b>
+        <span class="muted" style="font-weight:400">${option.desc}</span></button>`);
+      b.onclick = () => {
+        const res = T.Prog.applyEvent(option);
+        T.save();
+        UI.showSpinResult(res);
+      };
+      opts.appendChild(b);
+    });
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+  };
+
+  UI.showSpinResult = function (res) {
+    const chips = res.fx.map(f =>
+      `<span class="fx-chip ${f.delta >= 0 ? "good" : "bad"}">${f.label} ${f.delta >= 0 ? "+" : ""}${f.delta}</span>`).join("");
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div style="height:6vh"></div>
+      <div class="card center pop-in"><p style="font-size:18px;margin:0">${res.text}</p></div>
+      <div class="fx-chips">${chips}</div>
+      <button class="btn primary" id="go">Into the season</button>
+    `;
+    wrap.querySelector("#go").onclick = () => UI.show("hub");
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
@@ -579,7 +634,7 @@
       if (T.game.careerOver) { UI.show("retirement"); return; }
       const picks = T.game.pendingPerks || 0;
       T.game.pendingPerks = 0;
-      UI.showPerkPick(picks, () => UI.show("hub"));
+      UI.showPerkPick(picks, () => UI.enterSeason());
     };
     const ftBtn = wrap.querySelector("#fullTable");
     if (ftBtn) {

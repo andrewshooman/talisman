@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.8.0";
+  T.VERSION = "0.9.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -298,6 +298,7 @@
     XP_PER_LEVEL: 100,
     KEY_MOMENTS_PER_SEASON: 8,   // more player control: a decisive moment in many games
     PROMOTE_COUNT: 3,            // top/bottom N go up/down each season
+    SEASON_EVENT_CHANCE: 0.8,    // chance of a season-opening "spin" event
   };
 
   // ---- Glossary: plain-language help for every mechanic ---------------
@@ -314,6 +315,8 @@
     { term: "Mini-games", text: "Timing bar (strike on the gold zone), Aim target (place your shot), Reaction tap (beat the cue), Dribble dodge (weave past defenders), One-on-one (beat the onrushing keeper), Free kick (set power then curl it over the wall), Give & go (a three-tap one-two rhythm). Higher attributes make them more forgiving." },
     { term: "Perks", text: "Chosen on level-up, perks shape your identity — e.g. Clutch (better in key moments), Glass Cannon (more output, more injuries), Leader (lifts the team). They change the maths." },
     { term: "Awards & Call-Ups", text: "Strong seasons earn individual honours — Golden Boot (top scorer), Playmaker, Player (and Young Player) of the Season — plus a first national call-up and growing caps. Awards grant bonus XP and are weighted heavily in your Legacy Score." },
+    { term: "Pre-Season Events", text: "Most seasons open with a situation — a new manager, the captain's armband, a pre-season camp, contract talks, a knock — and your choice nudges your morale, form, fitness or training points heading into the campaign." },
+    { term: "Promotion & Relegation", text: "You play in a four-division English-style pyramid (Prime League → Championship → League One → League Two). Finish in the top three and you go up; bottom three and you go down — and the clubs around you move too. Climbing the pyramid is the heart of a great career." },
     { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating and longevity, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
     { term: "Hall of Fame & Sharing", text: "Every finished career is saved to your local Hall of Fame and ranked by Legacy Score. Share a career code with friends, or paste theirs in to compare. The Daily Challenge gives everyone the same starting career to compete on fairly." },
   ];
