@@ -78,9 +78,9 @@ T.game = {
 - Plays the **full FWD loop**: create -> season (4 key moments) -> results -> repeat
   -> retirement with legacy score/tier. Saves to localStorage.
 - **First-pass numbers** — not yet tuned. See ROADMAP Phase 1.
-- **Stubbed / not built yet:** spin/event screen, train screen (points accrue but
-  can't be spent), perk-pick UI, transfer offers, awards/call-ups, catastrophic-injury
-  is wired but rare, retirement trophy cabinet/defining-moments are minimal.
+- **Stubbed / not built yet:** spin/event screen, transfer offers, catastrophic-injury
+  is wired but rare, retirement defining-moments are minimal. (Train screen, perk-pick
+  UI and awards/call-ups are now built — see sections below.)
 
 ## Key moments + mini-games (how it fits together)
 
@@ -165,8 +165,34 @@ T.game = {
 - **Cache-busting**: index.html asset URLs carry `?v=<VERSION>`. BUMP this when you
   change CSS/JS or the preview/deploy may serve stale files (we hit this in testing).
 
+## Awards & national call-ups (v0.5)
+
+- **data.js** `T.AWARDS`: id -> `{name, icon, desc}` for the six honours
+  (goldenBoot, playmaker, pots, youngPlayer, callUp, intlStar). Display-only data.
+- **progression.js** `Prog.rollAwards(record)`: judges season honours at advance time.
+  Golden Boot / Playmaker compare `record.goals|assists` to a synthesised rival
+  benchmark (`T.randInt`, harder in higher tiers) so the race is contested each year.
+  POTS needs elite avg rating + top-5 finish (or the title); Young POTS is the U22
+  branch. International logic lives here too: once `intlReady`, the first season grants
+  `callUp`, then `player.caps` accrues (`apps/4`, clamped 2..12); a standout year adds
+  `intlStar`. Returns award ids; `advanceSeason` stores them on `record.awards`,
+  bumps `totals.awards`, and `awardXp` grants `+30 XP` each.
+- **state.js**: new `player.caps` (0). Old saves lack it — all reads guard with
+  `p.caps = p.caps || 0` / `g.player.caps || 0`, and `h.awards || []` over history.
+- **legacy.js**: already weighted `t.awards * 80`; it now actually moves because the
+  counter increments. No legacy.js change was needed.
+- **ui.js**: results screen shows an "Individual honours" card (icons + caps) after
+  the trophy card and fires confetti on any award; retirement adds Awards/Caps stat
+  chips and an honours cabinet tallying awards across the whole career (`×N`).
+- Reuses existing `.cabinet`/`.trophy-item` CSS — no new styles. Bumped asset
+  `?v=` to 0.5.0 (data.js `T.VERSION` + index.html) for cache-busting.
+
 ## Tuning log (append each pass — most recent first)
 
+- _2026-06-22_ — Added awards/call-ups (above). Benchmarks are first-pass: Golden Boot
+  bar `randInt(17,27)+(tier-3)`, Playmaker `randInt(11,18)`, POTS rating ≥ 7.5 (7.35
+  with bigGame) & finish ≤ 5. Validate alongside the Phase-1 sim tuning pass — if goal
+  output shifts, revisit these thresholds so honours stay roughly one-in-a-few-seasons.
 - _2026-06-20_ — Phase 0 first-pass constants set in `data.js` `T.TUNING`
   (MAX_GOALS 30, MAX_ASSISTS 18, BASE_INJURY_CHANCE 0.12). Engine goal formula:
   `(finishing*.5 + positioning*.3 + pace*.2)/99 * MAX_GOALS * form * fitness * attack`.

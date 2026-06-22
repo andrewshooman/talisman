@@ -56,8 +56,10 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       chip breakdown of the outcome. Outcomes scale by stakes (final swings > league).
 - [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
       bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
-- [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
-      Increment `totals.awards`; surface in results + legacy.
+- [x] **Awards & call-ups**: Golden Boot, Playmaker, Player & Young Player of the
+      Season, first national call-up + growing caps (`Prog.rollAwards`). Increments
+      `totals.awards`, grants bonus XP, and surfaces on the results & retirement
+      screens; Legacy already weights `awards * 80`.
 - [x] Grow the **key-moment pool** to 8 football-true FWD scenarios; all tied to a
       match with goal/assist effects. Fixed the `composure`-stat bug (FWDs lack it).
 - [x] More **mini-game types**: added Dribble Dodge (lane weaving) and One-on-One
@@ -67,7 +69,6 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 - [ ] Context-aware moment selection (finals only during a cup run / late season).
 - [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
       bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
-- [ ] **Awards & call-ups**: Player of the Season, Ballon-style, national team.
 
 ---
 
@@ -103,5 +104,5 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 ## Now / Next / Later (quick view)
 
 - **Now:** Tune sim feel · Spin/event screen · transfers between clubs.
-- **Next:** Awards/call-ups · grow moment pool · more mini-game types.
+- **Next:** Grow moment pool · context-aware moment selection · retirement polish.
 - **Later:** Other positions · PWA · stretch (daily seed, NG+, rivals).

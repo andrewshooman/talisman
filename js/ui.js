@@ -503,6 +503,18 @@
           ${record.trophies.map(tn => `<div class="trophy-item">${T.Vis.trophy(tn === "Cup" ? "cup" : "cup")}<span>${tn}</span></div>`).join("")}
         </div></div>`
       : ``;
+    const awardsHtml = (record.awards && record.awards.length)
+      ? `<div class="card pop-in">
+          <div class="muted" style="font-size:12px;margin-bottom:8px">🏅 Individual honours</div>
+          <div class="cabinet" style="justify-content:center">
+            ${record.awards.map(id => {
+              const a = T.AWARDS[id] || { icon: "🏅", name: id };
+              return `<div class="trophy-item"><div style="font-size:30px;line-height:1">${a.icon}</div><span>${a.name}</span></div>`;
+            }).join("")}
+          </div>
+          ${T.game.player.caps ? `<div class="muted center" style="font-size:12px;margin-top:6px">${T.game.player.caps} international caps</div>` : ``}
+        </div>`
+      : ``;
     wrap.innerHTML = `
       <div class="row" style="gap:10px;align-items:center">
         <div class="crest-inline">${T.Vis.crest(record.club, 40)}</div>
@@ -520,6 +532,7 @@
       </div>
 
       ${trophyHtml}
+      ${awardsHtml}
 
       <div class="card">
         <div class="muted" style="font-size:12px;margin-bottom:4px">Season form (per match rating)</div>
@@ -577,7 +590,7 @@
       };
     }
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
-    if (record.trophies.length) UI.confetti();
+    if (record.trophies.length || (record.awards && record.awards.length)) UI.confetti();
   };
 
   // Compact league view: top 5 + a window around the player.
@@ -614,6 +627,16 @@
       ? cabinet.map(tn => `<div class="trophy-item">${T.Vis.trophy("cup")}<span>${tn}</span></div>`).join("")
       : `<span class="muted">No silverware — but a story all the same.</span>`;
 
+    // Tally individual honours (awards) across the whole career.
+    const awardTally = {};
+    g.history.forEach(h => (h.awards || []).forEach(id => { awardTally[id] = (awardTally[id] || 0) + 1; }));
+    const honoursHtml = Object.keys(awardTally).length
+      ? Object.entries(awardTally).map(([id, n]) => {
+          const a = T.AWARDS[id] || { icon: "🏅", name: id };
+          return `<div class="trophy-item"><div style="font-size:26px;line-height:1">${a.icon}</div><span>${a.name}${n > 1 ? ` ×${n}` : ""}</span></div>`;
+        }).join("")
+      : `<span class="muted">No individual awards — a team player to the last.</span>`;
+
     wrap.innerHTML = `
       <div class="center">
         <div class="muted">FINAL TIER</div>
@@ -634,12 +657,17 @@
 
       <div class="card row between">
         ${chip("Apps", t.apps)}${chip("Goals", t.goals)}${chip("Assists", t.assists)}
-        ${chip("Trophies", t.trophies)}${chip("Peak", t.peakRating)}
+        ${chip("Trophies", t.trophies)}${chip("Awards", t.awards)}${chip("Caps", g.player.caps || 0)}${chip("Peak", t.peakRating)}
       </div>
 
       <div class="card">
         <b>Trophy cabinet</b>
         <div class="cabinet" style="margin-top:10px">${cabinetHtml}</div>
+      </div>
+
+      <div class="card">
+        <b>Individual honours</b>
+        <div class="cabinet" style="margin-top:10px">${honoursHtml}</div>
       </div>
 
       <div class="card">

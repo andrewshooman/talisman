@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.4.0";
+  T.VERSION = "0.5.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -101,6 +101,18 @@
     MEDIA:  { label: "Press", tone: "muted" },
   };
 
+  // ---- Awards & national call-ups ------------------------------------
+  // Earned at season end from performance (see Prog.rollAwards). Each one
+  // counts toward totals.awards, which the Legacy score weights heavily.
+  T.AWARDS = {
+    goldenBoot:  { name: "Golden Boot",               icon: "🥇", desc: "Top scorer in the league." },
+    playmaker:   { name: "Playmaker of the Season",   icon: "🅰", desc: "Most assists in the league." },
+    pots:        { name: "Player of the Season",      icon: "🏆", desc: "The league's standout performer." },
+    youngPlayer: { name: "Young Player of the Season", icon: "🌟", desc: "Best player aged 21 or under." },
+    callUp:      { name: "International Call-Up",      icon: "🌍", desc: "Named in your national squad for the first time." },
+    intlStar:    { name: "International of the Year",  icon: "🎖", desc: "Your nation's standout player." },
+  };
+
   // ---- Legacy ranking tiers (ascending) ------------------------------
   T.LEGACY_TIERS = [
     { name: "Squad Player", min: 0 },
@@ -164,6 +176,7 @@
     { term: "Key Moments", text: "A few matches each season pause on a decisive chance. Pick an action, play the skill mini-game, and the outcome is added to THAT match — it can turn a draw into a win and shift the table." },
     { term: "Mini-games", text: "Timing bar (strike on the gold zone), Aim target (place your shot), Reaction tap (beat the cue), Dribble dodge (weave past defenders), One-on-one (beat the onrushing keeper). Higher attributes make them more forgiving." },
     { term: "Perks", text: "Chosen on level-up, perks shape your identity — e.g. Clutch (better in key moments), Glass Cannon (more output, more injuries), Leader (lifts the team). They change the maths." },
+    { term: "Awards & Call-Ups", text: "Strong seasons earn individual honours — Golden Boot (top scorer), Playmaker, Player (and Young Player) of the Season — plus a first national call-up and growing caps. Awards grant bonus XP and are weighted heavily in your Legacy Score." },
     { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating and longevity, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
     { term: "Hall of Fame & Sharing", text: "Every finished career is saved to your local Hall of Fame and ranked by Legacy Score. Share a career code with friends, or paste theirs in to compare. The Daily Challenge gives everyone the same starting career to compete on fairly." },
   ];
