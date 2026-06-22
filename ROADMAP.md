@@ -50,8 +50,11 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       benchmarks, recalibrated `LEGACY_TIERS`, and folded national caps into the score.
       A well-played career now lands ~Legend median, Immortal ~top 20–30%, GOAT ~2–5%.
       _Open follow-up:_ per-stat goal/assist curve tuning and an age-curve playtest.
-- [ ] **Spin / event screen** (new `UI.screens.spin`): season-opening situation —
-      transfer offer, manager change, rivalry, captaincy, loan, injury scare.
+- [x] **Spin / event screen** (`UI.showSpin` + `Prog.SEASON_EVENTS`): a season-opening
+      situation (new manager, captaincy, pre-season camp, rivalry, contract talks, knock,
+      boot deal, fans' POTY) with a choice that nudges morale/form/fitness/training.
+      Shown once per season via `UI.enterSeason` (idempotent on resume). _Transfer offers
+      stay a separate item — they need to move you between clubs/divisions._
 - [x] **Train screen** (`UI.screens.train`): spend `trainingPoints` across the 5 stats
       with a live radar + a **projected season** preview (Engine.projectSeason) so stat
       gains visibly move OVR/goals/assists/rating. Confirm persists.
@@ -154,8 +157,8 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Transfers between clubs · spin/event screen · context-aware moment selection
-  (free kick only on set-pieces, one-two in open play).
+- **Now:** Transfers between clubs (move you up/down the pyramid) · context-aware moment
+  selection (free kick only on set-pieces, one-two in open play).
 - **Next:** Retirement polish (defining moments from `momentsLog`) · awards in Hall of
   Fame/share · more mini-games (headed power, long-shot swerve) · screen count-ups.
 - **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.

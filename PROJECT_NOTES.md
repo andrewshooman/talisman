@@ -275,6 +275,24 @@ promotion/relegation, and more player control over the season.
 - **Validate** with a headless career loop (see "Balance audit" above): assert each
   `game.league.divs[d].length === 20` and exactly one `"P"` every season.
 
+## Season-opening events — the "spin" (v0.9.0)
+
+- **`progression.js`:** `Prog.SEASON_EVENTS` is pure data — each event is
+  `{ id, icon, title, text, when?(p,g), options:[{label, desc, effects, text}] }`.
+  `effects` keys are `morale|form|fitness|training` (deltas). `Prog.rollSeasonEvent()`
+  gates by `when`, fires with `TUNING.SEASON_EVENT_CHANCE` (0.8, else `null` = quiet
+  pre-season), and `Prog.applyEvent(option)` mutates + clamps the player and returns
+  `{text, fx:[{label,delta}]}` for the UI. Logic only — no DOM.
+- **Flow (`ui.js`):** `UI.enterSeason()` is the single entry point into a season — it
+  shows one event per season (guarded by `game.eventShownFor === game.season`, so resuming
+  a save never re-rolls), then routes to the hub. It replaced the direct `UI.show("hub")`
+  calls after **create**, **daily start**, **results→perk-pick**, and **title→Continue**.
+  `UI.showSpin(ev)` renders the choice (reuses `.btn.perk-pick`); `UI.showSpinResult`
+  shows the outcome with `.fx-chip`s. Training points granted by an event are available
+  immediately on the Train screen (events resolve before the hub).
+- To add an event: append to `SEASON_EVENTS` with an optional `when` predicate; no UI
+  change needed. Keep deltas modest (single digits) — they stack across a career.
+
 ## Gotchas / decisions
 
 - localStorage works in a real deploy and in Claude Code, but **not inside Claude.ai
