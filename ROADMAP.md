@@ -42,8 +42,14 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 The skeleton plays end-to-end but numbers are first-pass. This phase is about feel.
 
-- [ ] **Tune the sim** (`engine.js`): sanity-check that a tier-1 17-yo doesn't score 40,
-      a prime tier-5 striker flirts with ~30. Log tuning passes in PROJECT_NOTES.
+- [x] **Tune the sim** — balance audit via a headless harness (~1500 simulated
+      careers through the real logic modules). Findings & fixes (2026-06-22, logged in
+      PROJECT_NOTES): goal output is sound (prime tier-5 peaks ~30–38, tier-1 stays
+      lower — matches the target); **legacy tiers were badly mis-calibrated** (≈85% of
+      careers ranked GOAT) and **awards fired ~1.5×/season**. Tightened award
+      benchmarks, recalibrated `LEGACY_TIERS`, and folded national caps into the score.
+      A well-played career now lands ~Legend median, Immortal ~top 20–30%, GOAT ~2–5%.
+      _Open follow-up:_ per-stat goal/assist curve tuning and an age-curve playtest.
 - [ ] **Spin / event screen** (new `UI.screens.spin`): season-opening situation —
       transfer offer, manager change, rivalry, captaincy, loan, injury scare.
 - [x] **Train screen** (`UI.screens.train`): spend `trainingPoints` across the 5 stats
@@ -67,8 +73,30 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 - [x] Wire **perks into math** (clutch / bigGame / leader / glassCannon / engine /
       ironMan / wonderkid all hooked).
 - [ ] Context-aware moment selection (finals only during a cup run / late season).
-- [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
-      bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
+
+---
+
+## Phase 1.5 — League world & player agency (NOW — requested 2026-06-22)
+
+A focused build to make the world feel like real English football and give the
+player more control. See PROJECT_NOTES "League world (planned)" for data shapes.
+
+- [ ] **Named league pyramid** (`data.js` + `league.js`): a four-division English-style
+      pyramid (Premier-style top flight → Championship → League One → League Two feel),
+      using **legally-distinct but recognisable** club identities — real-ish city names
+      with altered club names and *stable* kit colours (a red Manchester side stays red).
+      Map `CLUB_TIERS` (1–5) onto the pyramid. No real names, crests, or badges.
+- [ ] **Consistent club identities** (`data.js` `T.CLUBS` table + `visuals.js`): each club
+      has a fixed seed → same crest/kit/colours every season and across careers, so fans
+      recognise the analogues. Player's club is drawn from the chosen division.
+- [ ] **Promotion & relegation** (`league.js` + `progression.js`): top N go up, bottom N
+      go down each season; the player's club moves divisions accordingly (tier shifts),
+      and a fresh fixture list is built for the new division next season. Persist league
+      membership across seasons on `game` (currently the league is rebuilt fresh).
+- [ ] **More player control & match impact**: expand beyond ~4 key moments so the player
+      has more input on matches, and make mini-game/user performance visibly drive the
+      club's results & league position (and rival results) across the season.
+      _Mechanic to confirm with the user before building — see open question._
 
 ---
 
@@ -95,14 +123,23 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 
 ## Phase 4 — Stretch (LATER)
 
-- [ ] **Daily seed** — same career start for everyone that day (RNG already seedable).
+- [x] **Daily seed** — same career start for everyone that day. Shipped as the
+      **Daily Challenge** (title screen → `UI.startDaily`, `T.dailySeed`).
 - [ ] **New Game+** — carry one perk into the next run.
 - [ ] **Rivals** — generate AI careers; rank the player against them on retirement.
+- [ ] **Cup competitions** — a real knockout bracket (currently the Domestic Cup is a
+      coin-flip in `finalizeSeason`); tie cup-final key moments to actual rounds.
+- [ ] **Contracts & wages** — multi-year contracts, renewal decisions, a wage/budget
+      number that feeds transfer realism and a "mercenary vs loyal" legacy fork.
+- [ ] **Loyalty / journeyman legacy** — wire the dangling `loyal` & `mercenary` perks
+      into `legacy.compute` once transfers exist (one-club bonus vs variety bonus).
 
 ---
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Tune sim feel · Spin/event screen · transfers between clubs.
-- **Next:** Grow moment pool · context-aware moment selection · retirement polish.
-- **Later:** Other positions · PWA · stretch (daily seed, NG+, rivals).
+- **Now:** Named English-style league pyramid + recognisable club identities ·
+  promotion/relegation · more player control & match impact (Phase 1.5).
+- **Next:** Transfers between clubs · spin/event screen · context-aware moments ·
+  retirement polish (defining moments from `momentsLog`).
+- **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.
