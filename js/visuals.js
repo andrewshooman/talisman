@@ -30,7 +30,10 @@
   function hsl(h, s, l) { return `hsl(${h % 360} ${s}% ${l}%)`; }
 
   // Deterministic two-color kit/crest palette from a seed string.
+  // Named pyramid clubs have a fixed identity registered in T.CLUB_COLORS so
+  // their crest/kit colours are stable every season and across careers.
   V.palette = function (seed) {
+    if (T.CLUB_COLORS && T.CLUB_COLORS[seed]) return T.CLUB_COLORS[seed];
     const h = hash(seed);
     const hue = h % 360;
     const comp = (hue + (60 + (h % 120))) % 360; // varied second hue

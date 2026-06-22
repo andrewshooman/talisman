@@ -81,6 +81,10 @@
         tier: tier,
       },
 
+      // league pyramid: current division + the persistent club ladder (set below)
+      division: 0,
+      league: null,
+
       season: 1,
       careerOver: false,
 
@@ -101,7 +105,35 @@
       pending: null,
     };
 
+    T.initLeague(tier);
     return T.game;
+  };
+
+  // ---- League pyramid setup ------------------------------------------
+  // Map the chosen starting club tier (1..5) to a starting division (0=top).
+  T.DIV_FOR_START_TIER = { 1: 3, 2: 2, 3: 1, 4: 0, 5: 0 };
+
+  // Build the persistent club ladder for a new career. Every division holds 20
+  // clubs from T.CLUB_DB; the player ("P" sentinel) takes a slot in the starting
+  // division, displacing that division's weakest club for the whole career so the
+  // promotion/relegation maths stays balanced at 20 teams per division forever.
+  T.initLeague = function (startTier) {
+    const g = T.game;
+    const divs = [[], [], [], []];
+    T.CLUB_DB.forEach((c, cid) => divs[c.div].push(cid));
+    const pDiv = T.DIV_FOR_START_TIER[startTier] != null ? T.DIV_FOR_START_TIER[startTier] : 2;
+    let weakest = -1, weakStr = 999;
+    divs[pDiv].forEach(cid => { if (T.CLUB_DB[cid].str < weakStr) { weakStr = T.CLUB_DB[cid].str; weakest = cid; } });
+    divs[pDiv] = divs[pDiv].filter(cid => cid !== weakest);
+    divs[pDiv].push("P");
+    g.division = pDiv;
+    g.league = { divs };
+  };
+
+  // Convenience: the current division's display name (guards old saves).
+  T.divisionName = function () {
+    const g = T.game;
+    return (g && T.DIVISIONS[g.division]) ? T.DIVISIONS[g.division].name : ("Tier " + (g ? g.club.tier : "?"));
   };
 
   // ---- Random name helpers -------------------------------------------

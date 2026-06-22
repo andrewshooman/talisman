@@ -180,6 +180,53 @@
     return { levelsGained };
   };
 
+  // Promotion / relegation across the whole pyramid. The player's division is
+  // ordered by the real final table (season.finalOrder); other divisions are
+  // ordered by club strength + noise. Top/bottom N swap across each boundary so
+  // every division stays at 20 clubs. Updates the player's division & club tier.
+  // Returns { moved:"up"|"down", fromName, toName } if the player changed division.
+  Prog.runPromRel = function (season) {
+    const g = T.game;
+    if (!g.league) return null;
+    const divs = g.league.divs;
+    const N = T.TUNING.PROMOTE_COUNT || 3;
+    const prevDiv = g.division;
+
+    const strOf = (x) => x === "P"
+      ? (T.CLUB_TIERS[g.club.tier].base + (T.overall() - 60) * 0.2)
+      : T.CLUB_DB[x].str;
+
+    // Build a finishing order for every division.
+    const order = divs.map((members, d) => {
+      if (d === prevDiv && season && season.finalOrder) return season.finalOrder.slice();
+      return members
+        .map(x => ({ x, key: strOf(x) + T.rand(-7, 7) }))
+        .sort((a, b) => b.key - a.key)
+        .map(o => o.x);
+    });
+
+    // Apply N-up / N-down across each adjacent boundary.
+    for (let d = 0; d < divs.length - 1; d++) {
+      const up = order[d + 1].slice(0, N);                  // promoted to div d
+      const down = order[d].slice(order[d].length - N);     // relegated to div d+1
+      divs[d] = divs[d].filter(x => up.indexOf(x) < 0 && down.indexOf(x) < 0).concat(up);
+      divs[d + 1] = divs[d + 1].filter(x => up.indexOf(x) < 0 && down.indexOf(x) < 0).concat(down);
+    }
+
+    // Where did the player end up?
+    let newDiv = prevDiv;
+    for (let d = 0; d < divs.length; d++) if (divs[d].indexOf("P") >= 0) newDiv = d;
+    g.division = newDiv;
+    g.club.tier = T.DIVISIONS[newDiv].tier;
+
+    if (newDiv === prevDiv) return null;
+    return {
+      moved: newDiv < prevDiv ? "up" : "down",
+      fromName: T.DIVISIONS[prevDiv].name,
+      toName: T.DIVISIONS[newDiv].name,
+    };
+  };
+
   // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.
   Prog.generateOffers = function () { return []; };
 })();

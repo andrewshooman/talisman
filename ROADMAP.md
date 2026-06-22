@@ -76,27 +76,38 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 
 ---
 
-## Phase 1.5 — League world & player agency (NOW — requested 2026-06-22)
+## Phase 1.5 — League world & player agency (DONE — requested 2026-06-22)
 
-A focused build to make the world feel like real English football and give the
-player more control. See PROJECT_NOTES "League world (planned)" for data shapes.
+Made the world feel like English football and gave the player more control. See
+PROJECT_NOTES "League world" for the data shapes & ladder model.
 
-- [ ] **Named league pyramid** (`data.js` + `league.js`): a four-division English-style
-      pyramid (Premier-style top flight → Championship → League One → League Two feel),
-      using **legally-distinct but recognisable** club identities — real-ish city names
-      with altered club names and *stable* kit colours (a red Manchester side stays red).
-      Map `CLUB_TIERS` (1–5) onto the pyramid. No real names, crests, or badges.
-- [ ] **Consistent club identities** (`data.js` `T.CLUBS` table + `visuals.js`): each club
-      has a fixed seed → same crest/kit/colours every season and across careers, so fans
-      recognise the analogues. Player's club is drawn from the chosen division.
-- [ ] **Promotion & relegation** (`league.js` + `progression.js`): top N go up, bottom N
-      go down each season; the player's club moves divisions accordingly (tier shifts),
-      and a fresh fixture list is built for the new division next season. Persist league
-      membership across seasons on `game` (currently the league is rebuilt fresh).
-- [ ] **More player control & match impact**: expand beyond ~4 key moments so the player
-      has more input on matches, and make mini-game/user performance visibly drive the
-      club's results & league position (and rival results) across the season.
-      _Mechanic to confirm with the user before building — see open question._
+- [x] **Named league pyramid** (`data.js` `T.DIVISIONS` + `T.CLUB_DB`): four divisions
+      (Prime League → The Championship → League One → League Two), 20 clubs each = 80
+      **legally-distinct but recognisable** clubs (city + colour + nickname; no real
+      names/crests/logos). `league.js` `buildDivision` builds the player's division.
+- [x] **Consistent club identities** (`data.js` `T.CLUB_COLORS` + `visuals.js`): each club
+      has a fixed colour identity keyed by name; `V.palette` returns it so crest/kit
+      colours are stable every season and across careers (a red Mersey side stays red).
+- [x] **Promotion & relegation** (`progression.js` `runPromRel`): top/bottom 3 swap across
+      each boundary every season; the player rises/falls with their finish, their club
+      tier shifts, and the ladder persists on `game.league`. Results screen shows a
+      PROMOTED/RELEGATED banner. Validated headlessly (ladder stays 20/division).
+- [x] **More player control & match impact**: key moments per season 4 → **8** (chosen:
+      "more key moments + bigger ripple"); each successful scoring moment still adds a
+      goal to its real fixture, so with more moments the user's mini-game performance
+      moves more matches → shifts the table, the title race, and who gets promoted.
+
+### Phase 1.5 follow-ups (NEXT — requested)
+
+- [ ] **New mini-game types** (`minigames.js`): add more skill games beyond the current 5
+      (timingBar / aimTarget / reactionTap / dribbleDodge / oneOnOne) and map them to the
+      8 key-moment scenarios. Ideas: free-kick curl (bend over a wall), keeper one-on-one
+      reaction save (if GK lands), give-and-go passing combo, headed-aim power+placement.
+- [ ] **Improved mini-game visuals** (`minigames.js` scenes + CSS): richer SVG stadium
+      scenes per game (pitch depth, crowd, goal net, keeper), clearer hit/zone feedback,
+      and a result flourish. Make each game read like a moment, not a bar.
+- [ ] **Menu / screen visual polish** (`styles.css` + `ui.js`): lift the title, hub,
+      results and retirement screens — division crest banner, club nickname, transitions.
 
 ---
 
@@ -138,8 +149,7 @@ player more control. See PROJECT_NOTES "League world (planned)" for data shapes.
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Named English-style league pyramid + recognisable club identities ·
-  promotion/relegation · more player control & match impact (Phase 1.5).
+- **Now:** New mini-game types + improved mini-game/menu visuals (Phase 1.5 follow-ups).
 - **Next:** Transfers between clubs · spin/event screen · context-aware moments ·
   retirement polish (defining moments from `momentsLog`).
 - **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.

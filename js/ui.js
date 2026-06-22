@@ -144,8 +144,10 @@
 
     const setTierLabel = () => {
       const v = T.CLUB_TIERS[draft.clubTier];
+      const divIdx = T.DIV_FOR_START_TIER[draft.clubTier];
+      const divName = T.DIVISIONS[divIdx] ? T.DIVISIONS[divIdx].name : v.label;
       wrap.querySelector("#tierLabel").textContent =
-        `${v.label} · legacy ×${v.legacyMult}`;
+        `Starts in ${divName} · legacy ×${v.legacyMult}`;
     };
     setTierLabel();
     updateCard();
@@ -195,7 +197,7 @@
 
       <div class="card row between">
         <div class="row" style="gap:8px"><div class="crest-inline">${T.Vis.crest(g.club.name, 28)}</div>
-          <div><div class="muted" style="font-size:11px">Club · Tier ${g.club.tier}</div><b>${g.club.name}</b></div></div>
+          <div><div class="muted" style="font-size:11px">${T.divisionName()}</div><b>${g.club.name}</b></div></div>
         <div class="center"><div class="muted" style="font-size:11px">Season</div><b>#${g.season}</b></div>
       </div>
 
@@ -388,6 +390,7 @@
         UI.renderMoment(moments[idx], season, () => { idx++; next(); });
       } else {
         const record = T.Engine.finalizeSeason(season);
+        record.proRel = T.Prog.runPromRel(season); // promotion/relegation across the pyramid
         T.Prog.rollInjury();
         const ended = T.Prog.rollCareerEndInjury();
         const adv = T.Prog.advanceSeason(record);
@@ -515,12 +518,21 @@
           ${T.game.player.caps ? `<div class="muted center" style="font-size:12px;margin-top:6px">${T.game.player.caps} international caps</div>` : ``}
         </div>`
       : ``;
+    const proRelHtml = record.proRel
+      ? `<div class="card center pop-in" style="border-color:${record.proRel.moved === "up" ? "var(--good)" : "var(--bad)"}">
+          <b style="color:${record.proRel.moved === "up" ? "var(--good)" : "var(--bad)"};font-size:18px">
+            ${record.proRel.moved === "up" ? "⬆ PROMOTED" : "⬇ RELEGATED"}</b>
+          <div class="muted" style="font-size:13px">${record.proRel.fromName} → <b>${record.proRel.toName}</b> for next season</div>
+        </div>`
+      : ``;
     wrap.innerHTML = `
       <div class="row" style="gap:10px;align-items:center">
         <div class="crest-inline">${T.Vis.crest(record.club, 40)}</div>
         <div><h2 style="margin:0">Season #${record.season}</h2>
-          <div class="muted">${record.club} · age ${record.age}</div></div>
+          <div class="muted">${record.club}${record.divisionName ? " · " + record.divisionName : ""} · age ${record.age}</div></div>
       </div>
+
+      ${proRelHtml}
 
       <div class="card ring-row">
         ${T.Vis.ring(record.rating, 10, "Avg rating", 96)}
@@ -543,7 +555,7 @@
 
       ${record.table ? `<div class="card">
         <div class="row between" style="margin-bottom:6px">
-          <b>Final table</b>
+          <b>${record.divisionName || "Final"} table</b>
           <button class="btn ghost" id="fullTable" style="width:auto;min-height:34px;padding:0 12px;font-size:12px">Full table</button>
         </div>
         ${T.Vis.leagueTable(tableWindow(record.table), 0)}
