@@ -86,31 +86,32 @@
     const ovr = T.overall();
 
     // Stronger leagues set a higher bar for the individual scoring/creating gongs.
-    // Benchmarks are a genuine title-race number so honours stay rare & earned.
-    const rivalGoals = T.randInt(24, 32) + (record.clubTier - 3);
-    const rivalAssists = T.randInt(15, 21);
+    // Bar scales with division so honours stay rare & earned at every level.
+    const rivalGoals = T.randInt(26, 34) + (record.clubTier - 2) * 2;
+    const rivalAssists = T.randInt(16, 23);
     if (record.goals >= rivalGoals) awards.push("goldenBoot");
     if (record.assists >= rivalAssists) awards.push("playmaker");
 
-    // Player of the Season — elite average rating + a top-3 finish, or the title.
-    const wonTitle = record.trophies.includes("League Title");
-    const potsBar = T.hasPerk("bigGame") ? 7.5 : 7.65;
-    if ((record.rating >= potsBar && record.finish <= 3) || (wonTitle && record.rating >= 7.4)) {
+    // Player of the Season — elite average rating + a top-2 finish, or the title.
+    // (Title trophies are named per division, e.g. "Prime League Title".)
+    const wonTitle = record.trophies.some(t => /Title$/.test(t));
+    const potsBar = T.hasPerk("bigGame") ? 7.55 : 7.7;
+    if ((record.rating >= potsBar && record.finish <= 2) || (wonTitle && record.rating >= 7.45)) {
       awards.push("pots");
     }
 
     // Young Player of the Season — standout under-22.
-    if (p.age <= 21 && (record.goals >= 18 || record.assists >= 13 || record.rating >= 7.4)) {
+    if (p.age <= 21 && (record.goals >= 20 || record.assists >= 14 || record.rating >= 7.45)) {
       awards.push("youngPlayer");
     }
 
     // National team: first call-up, then accumulating caps and an outstanding-year gong.
     p.caps = p.caps || 0;
-    const intlReady = ovr >= 74 || record.goals >= 16 || awards.length > 0;
+    const intlReady = ovr >= 76 || record.goals >= 18 || awards.length > 0;
     if (intlReady) {
       if (p.caps === 0) awards.push("callUp");
       p.caps += T.clamp(Math.round(record.apps / 5), 2, 9);
-      if (record.rating >= 7.85 && (record.goals >= 24 || record.trophies.length >= 2)) {
+      if (record.rating >= 7.9 && (record.goals >= 26 || record.trophies.length >= 2)) {
         awards.push("intlStar");
       }
     }

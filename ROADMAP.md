@@ -49,7 +49,12 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       careers ranked GOAT) and **awards fired ~1.5×/season**. Tightened award
       benchmarks, recalibrated `LEGACY_TIERS`, and folded national caps into the score.
       A well-played career now lands ~Legend median, Immortal ~top 20–30%, GOAT ~2–5%.
-      _Open follow-up:_ per-stat goal/assist curve tuning and an age-curve playtest.
+- [x] **Full-integration rebalance (v0.9.1)** — re-audited with a *faithful* harness
+      (season events + 8 key moments + pro/rel all simulated). The economy had re-inflated
+      (68% GOAT, 1.32 awards/season at the top); fixed a dead POTS title-check, scaled the
+      award bar by division, trimmed `MAX_GOALS`/`MAX_ASSISTS`, and recalibrated the legacy
+      ladder. Difficulty multiplier now rewards low starts (GOAT concentrates in tier-1).
+      See PROJECT_NOTES tuning log. _Open:_ per-stat curve + age-curve playtest.
 - [x] **Spin / event screen** (`UI.showSpin` + `Prog.SEASON_EVENTS`): a season-opening
       situation (new manager, captaincy, pre-season camp, rivalry, contract talks, knock,
       boot deal, fans' POTY) with a choice that nudges morale/form/fitness/training.
