@@ -193,9 +193,7 @@
     const N = T.TUNING.PROMOTE_COUNT || 3;
     const prevDiv = g.division;
 
-    const strOf = (x) => x === "P"
-      ? (T.CLUB_TIERS[g.club.tier].base + (T.overall() - 60) * 0.2)
-      : T.CLUB_DB[x].str;
+    const strOf = (x) => T.ladderClub(x).str;
 
     // Build a finishing order for every division.
     const order = divs.map((members, d) => {
@@ -338,6 +336,71 @@
     return { text: option.text, fx };
   };
 
-  // TODO: Prog.generateOffers(record) -> [ {club, tier} ] based on perf.
-  Prog.generateOffers = function () { return []; };
+  // ---- Transfers -----------------------------------------------------
+  // After a season, a strong campaign attracts bigger clubs. Offers can be a
+  // step UP the pyramid (join a club a division or two above) or a marquee
+  // lateral move to a stronger club in the same division. Returns [] or offers
+  // [{cid, division, type, blurb}]. Accepting adopts that club's identity.
+  Prog.generateOffers = function (record) {
+    const g = T.game, p = g.player;
+    if (g.careerOver || !g.league) return [];
+
+    // "Stock" — how attractive the player is right now.
+    let stock = (record.rating - 6.5) * 12 + record.goals * 0.9 +
+      (record.awards ? record.awards.length * 8 : 0);
+    if (record.finish <= 3) stock += 6;
+    if (p.age > 30) stock -= (p.age - 30) * 3;
+    if (T.hasPerk("mercenary")) stock += 8;
+    if (stock < 16) return [];
+
+    const offers = [];
+    const curDiv = g.division;
+    const ladderDivOf = (cid) => g.league.divs.findIndex(arr => arr.indexOf(cid) >= 0);
+    const strongIn = (d, n, minStr) => g.league.divs[d]
+      .filter(e => typeof e === "number" && (minStr == null || T.CLUB_DB[e].str >= minStr))
+      .sort((a, b) => T.CLUB_DB[b].str - T.CLUB_DB[a].str).slice(0, n);
+
+    // Step up: a club from the division above (two above for elite stock).
+    if (curDiv > 0) {
+      const targetDiv = (stock > 36 && curDiv > 1) ? curDiv - 2 : curDiv - 1;
+      const cands = strongIn(targetDiv, 6);
+      if (cands.length) {
+        const cid = T.pick(cands);
+        offers.push({ cid, division: ladderDivOf(cid), type: "step-up",
+          blurb: `${T.CLUB_DB[cid].name} of the ${T.DIVISIONS[targetDiv].name} want you as their marquee signing.` });
+      }
+    }
+    // Marquee lateral: a bigger club in your own division.
+    if (stock > 24) {
+      const cands = strongIn(curDiv, 5, T.playerClubStr() + 5);
+      if (cands.length) {
+        const cid = T.pick(cands);
+        offers.push({ cid, division: ladderDivOf(cid), type: "marquee",
+          blurb: `${T.CLUB_DB[cid].name}, one of the ${T.DIVISIONS[curDiv].name}'s giants, come calling.` });
+      }
+    }
+    return offers;
+  };
+
+  // Accept a transfer: the player adopts the target club's identity & division;
+  // the club they leave becomes an AI side. Keeps every division at 20.
+  Prog.acceptTransfer = function (offer) {
+    const g = T.game;
+    const targetCid = offer.cid;
+    const targetDiv = g.league.divs.findIndex(arr => arr.indexOf(targetCid) >= 0);
+    if (targetDiv < 0) return false;
+    const oldDiv = g.division;
+    const left = { name: g.club.name, str: T.clamp(T.CLUB_TIERS[g.club.tier].base, 25, 95) };
+    if (targetDiv === oldDiv) {
+      g.league.divs[oldDiv] = g.league.divs[oldDiv].map(x => x === "P" ? left : (x === targetCid ? "P" : x));
+    } else {
+      g.league.divs[oldDiv] = g.league.divs[oldDiv].map(x => x === "P" ? left : x);
+      g.league.divs[targetDiv] = g.league.divs[targetDiv].map(x => x === targetCid ? "P" : x);
+    }
+    g.club.name = T.CLUB_DB[targetCid].name;
+    g.division = targetDiv;
+    g.club.tier = T.DIVISIONS[targetDiv].tier;
+    g.totals.clubsPlayedFor = (g.totals.clubsPlayedFor || 1) + 1;
+    return true;
+  };
 })();

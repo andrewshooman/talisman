@@ -21,15 +21,12 @@
   // a little seasonal noise); their crest/kit colours come from T.CLUB_COLORS.
   League.buildDivision = function (g) {
     const entries = g.league.divs[g.division];
-    const ovr = T.overall();
-    const base = T.CLUB_TIERS[g.club.tier].base;
-    let pstr = base + (ovr - 60) * 0.2;
-    if (T.hasPerk && T.hasPerk("leader")) pstr += 3;
-    const teams = [{ id: 0, cid: "P", name: g.club.name, str: T.clamp(Math.round(pstr), 25, 95), isPlayer: true }];
+    const pc = T.ladderClub("P");
+    const teams = [{ id: 0, cid: "P", name: pc.name, str: pc.str, isPlayer: true }];
     let id = 1;
     entries.forEach(e => {
       if (e === "P") return;
-      const c = T.CLUB_DB[e];
+      const c = T.ladderClub(e);
       teams.push({ id: id++, cid: e, name: c.name, str: T.clamp(Math.round(c.str + T.rand(-4, 4)), 25, 95) });
     });
     return teams;

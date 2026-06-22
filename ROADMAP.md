@@ -68,8 +68,11 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
 - [x] **Scenario context & consequences**: key moments show a competition badge, your
       club vs a generated opponent, the stakes, per-choice career impact, and an effect-
       chip breakdown of the outcome. Outcomes scale by stakes (final swings > league).
-- [ ] **Transfers/feedback** (`progression.generateOffers`): strong seasons attract
-      bigger clubs; poor seasons -> drop/loan/relegation. Wire into post-results.
+- [x] **Transfers** (`Prog.generateOffers` / `Prog.acceptTransfer` + `UI.showTransferWindow`):
+      a strong season attracts bigger clubs — a **step up** the pyramid or a **marquee** move
+      in your division. Accepting adopts that club's name/colours/division; your old club
+      becomes an AI side. Shown in a post-results transfer window; `clubsPlayedFor` tracked.
+      Validated: ladder integrity holds through transfers, GOAT rate unchanged (~4%).
 - [x] **Awards & call-ups**: Golden Boot, Playmaker, Player & Young Player of the
       Season, first national call-up + growing caps (`Prog.rollAwards`). Increments
       `totals.awards`, grants bonus XP, and surfaces on the results & retirement
@@ -162,8 +165,8 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Transfers between clubs (move you up/down the pyramid) · context-aware moment
-  selection (free kick only on set-pieces, one-two in open play).
+- **Now:** Loyalty vs journeyman legacy (wire `loyal`/`mercenary` + `clubsPlayedFor` now
+  that transfers exist) · context-aware moment selection (free kick on set-pieces only).
 - **Next:** Retirement polish (defining moments from `momentsLog`) · awards in Hall of
   Fame/share · more mini-games (headed power, long-shot swerve) · screen count-ups.
 - **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.

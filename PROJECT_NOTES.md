@@ -295,6 +295,32 @@ promotion/relegation, and more player control over the season.
 - **Validate** with a headless career loop (see "Balance audit" above): assert each
   `game.league.divs[d].length === 20` and exactly one `"P"` every season.
 
+## Transfers (v0.10.0)
+
+- **Ladder entries are now heterogeneous.** `game.league.divs[d]` holds `"P"` (the
+  player), a **number** (a `T.CLUB_DB` id), or an **object** `{name, str}` (a club the
+  player has *left behind* after a transfer — its own identity, hashed colours since it's
+  not in `T.CLUB_COLORS`). Always resolve an entry with **`T.ladderClub(entry)`** →
+  `{cid, name, str, isPlayer?}`. `league.buildDivision` and `progression.runPromRel`'s
+  `strOf` both go through it, so promotion/relegation works on any entry type.
+- **`Prog.generateOffers(record)`** (logic): computes a "stock" from rating/goals/awards/
+  finish/age (+`mercenary` perk); above a threshold it offers a **step-up** (a strong club
+  one — or, for elite stock, two — divisions above) and/or a **marquee** lateral (a bigger
+  club in your division). Returns `[{cid, division, type, blurb}]`. Only offers `number`
+  entries (real recognisable clubs), never the club you already are.
+- **`Prog.acceptTransfer(offer)`** swaps the player in: the target club's slot becomes
+  `"P"`, the player's old slot becomes a `{name,str}` object (the club you left, now AI),
+  and `game.club.name`/`division`/`tier` adopt the target. **Counts stay at 20/division and
+  exactly one `"P"`** (validated over 1000 careers, 0 breaks). `totals.clubsPlayedFor++`.
+- **Flow (`ui.js`):** offers are generated in `playSeason` (stored on `game.pendingOffers`,
+  empty if the career just ended). Post-results chains results → perk pick →
+  `UI.afterResults()` → `UI.showTransferWindow(offers, …)` (accept adopts the club via
+  `UI.showTransferResult`, or Stay) → `UI.enterSeason()`. Offer cards use `.offer-btn` CSS.
+- **Balance:** accepting every step-up (~5/career) only nudges the median legacy up a little
+  and leaves GOAT ~4% (loyal play also reaches GOAT), so transfers reward ambition without
+  cheesing the ranking. _Follow-up:_ wire `loyal`/`mercenary` + `clubsPlayedFor` into
+  `legacy.compute` for a real one-club-vs-journeyman fork.
+
 ## Season-opening events — the "spin" (v0.9.0)
 
 - **`progression.js`:** `Prog.SEASON_EVENTS` is pure data — each event is
