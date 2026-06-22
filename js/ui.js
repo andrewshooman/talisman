@@ -416,6 +416,63 @@
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
   };
 
+  // After results + perk pick: show the transfer window if there are offers.
+  UI.afterResults = function () {
+    const offers = T.game.pendingOffers || [];
+    if (offers.length) UI.showTransferWindow(offers, () => UI.enterSeason());
+    else UI.enterSeason();
+  };
+
+  // ---- Transfer window: accept a move to a new club, or stay loyal --------
+  UI.showTransferWindow = function (offers, done) {
+    const finish = () => { T.game.pendingOffers = []; T.save(); };
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div class="center"><div class="pill gold pop-in" style="align-self:center">📣 TRANSFER WINDOW</div></div>
+      <div class="card center"><p style="margin:0">Your form has turned heads. ${offers.length === 1 ? "An offer is" : "Offers are"} on the table — move on, or stay and build your story here.</p></div>
+      <div class="col" id="offers"></div>
+      <button class="btn ghost" id="stay">Stay at ${T.game.club.name}</button>
+    `;
+    const box = wrap.querySelector("#offers");
+    offers.forEach(offer => {
+      const c = T.CLUB_DB[offer.cid];
+      const divName = T.DIVISIONS[offer.division] ? T.DIVISIONS[offer.division].name : "";
+      const card = el(`<button class="btn offer-btn">
+        <span class="crest-inline">${T.Vis.crest(c.name, 38)}</span>
+        <span class="grow" style="text-align:left">
+          <b>${c.name}</b>
+          <span class="offer-sub">${divName}${c.nick ? " · " + c.nick : ""}${offer.type === "step-up" ? " · step up ⬆" : ""}</span>
+          <span class="offer-blurb">${offer.blurb}</span>
+        </span></button>`);
+      card.onclick = () => {
+        T.Prog.acceptTransfer(offer);
+        finish();
+        UI.showTransferResult(done);
+      };
+      box.appendChild(card);
+    });
+    wrap.querySelector("#stay").onclick = () => { finish(); done(); };
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+  };
+
+  UI.showTransferResult = function (done) {
+    const g = T.game;
+    const wrap = el(`<div class="col"></div>`);
+    wrap.innerHTML = `
+      <div style="height:5vh"></div>
+      <div class="center"><div class="brand pop-in" style="font-size:26px">WELCOME</div></div>
+      <div class="card center pop-in">
+        <div class="crest-inline" style="justify-content:center">${T.Vis.crest(g.club.name, 64)}</div>
+        <h2 style="margin:8px 0 2px">${g.club.name}</h2>
+        <div class="muted">${T.divisionName()} · your new home</div>
+      </div>
+      <button class="btn primary" id="go">Report for duty</button>
+    `;
+    wrap.querySelector("#go").onclick = done;
+    UI.confetti(90);
+    const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
+  };
+
   // ---- Season flow: simulate the league, play key matches, results ----
   // runSeason() builds & sims the whole 20-team league game-by-game and
   // marks a few rounds as key matches. We play those interactively (each
@@ -448,6 +505,7 @@
         record.proRel = T.Prog.runPromRel(season); // promotion/relegation across the pyramid
         T.Prog.rollInjury();
         const ended = T.Prog.rollCareerEndInjury();
+        g.pendingOffers = ended ? [] : T.Prog.generateOffers(record); // transfer interest
         const adv = T.Prog.advanceSeason(record);
         if (ended) g.careerOver = true;
         g.pendingPerks = ended ? 0 : (adv.levelsGained || 0);
@@ -634,7 +692,7 @@
       if (T.game.careerOver) { UI.show("retirement"); return; }
       const picks = T.game.pendingPerks || 0;
       T.game.pendingPerks = 0;
-      UI.showPerkPick(picks, () => UI.enterSeason());
+      UI.showPerkPick(picks, () => UI.afterResults());
     };
     const ftBtn = wrap.querySelector("#fullTable");
     if (ftBtn) {

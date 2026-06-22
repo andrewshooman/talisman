@@ -530,3 +530,12 @@ input[type="text"], select {
 /* Result flash helper class (mini-game success/fail pop) */
 .mg-flash { animation: mgFlash .4s ease; }
 @keyframes mgFlash { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+
+/* Transfer offer cards */
+.btn.offer-btn {
+  height: auto; min-height: 64px; padding: 12px 14px; align-items: center; gap: 12px;
+  border-color: var(--gold-dim);
+}
+.offer-btn b { font-size: 16px; }
+.offer-sub { display: block; font-size: 12px; color: var(--gold); font-weight: 700; margin-top: 1px; }
+.offer-blurb { display: block; font-size: 12px; color: var(--muted); font-weight: 400; margin-top: 3px; line-height: 1.3; }

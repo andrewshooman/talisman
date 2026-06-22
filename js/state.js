@@ -136,6 +136,24 @@
     return (g && T.DIVISIONS[g.division]) ? T.DIVISIONS[g.division].name : ("Tier " + (g ? g.club.tier : "?"));
   };
 
+  // Player's club strength for the league (anchored to tier, nudged by overall).
+  T.playerClubStr = function () {
+    const g = T.game;
+    let s = T.CLUB_TIERS[g.club.tier].base + (T.overall() - 60) * 0.2;
+    if (T.hasPerk && T.hasPerk("leader")) s += 3;
+    return T.clamp(Math.round(s), 25, 95);
+  };
+
+  // Resolve a ladder entry to a club { cid, name, str, isPlayer? }. Entries are
+  // "P" (the player), a number (T.CLUB_DB id), or an object (a club the player
+  // has left behind after a transfer — its own name/strength, hashed colours).
+  T.ladderClub = function (entry) {
+    if (entry === "P") return { cid: "P", name: T.game.club.name, str: T.playerClubStr(), isPlayer: true };
+    if (entry && typeof entry === "object") return { cid: entry, name: entry.name, str: entry.str };
+    const c = T.CLUB_DB[entry];
+    return { cid: entry, name: c.name, str: c.str };
+  };
+
   // ---- Random name helpers -------------------------------------------
   T.randomPlayerName = () => `${T.pick(T.FIRST_NAMES)} ${T.pick(T.LAST_NAMES)}`;
   T.randomClubName = () => {

@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.9.1";
+  T.VERSION = "0.10.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -317,6 +317,7 @@
     { term: "Awards & Call-Ups", text: "Strong seasons earn individual honours — Golden Boot (top scorer), Playmaker, Player (and Young Player) of the Season — plus a first national call-up and growing caps. Awards grant bonus XP and are weighted heavily in your Legacy Score." },
     { term: "Pre-Season Events", text: "Most seasons open with a situation — a new manager, the captain's armband, a pre-season camp, contract talks, a knock — and your choice nudges your morale, form, fitness or training points heading into the campaign." },
     { term: "Promotion & Relegation", text: "You play in a four-division English-style pyramid (Prime League → Championship → League One → League Two). Finish in the top three and you go up; bottom three and you go down — and the clubs around you move too. Climbing the pyramid is the heart of a great career." },
+    { term: "Transfers", text: "A strong season turns heads. In the transfer window you may get offers to join a bigger club — a step up the pyramid or a marquee move — and you adopt that club's name, colours and division. Move on to climb faster, or stay loyal and build your story at one club." },
     { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating and longevity, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
     { term: "Hall of Fame & Sharing", text: "Every finished career is saved to your local Hall of Fame and ranked by Legacy Score. Share a career code with friends, or paste theirs in to compare. The Daily Challenge gives everyone the same starting career to compete on fairly." },
   ];
