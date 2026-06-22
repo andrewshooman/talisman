@@ -94,6 +94,12 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       pro/rel + transfers, the specials, and loose balance bounds so a tuning blow-up
       fails CI. Replaces the throwaway `/tmp` scripts.
 - [ ] Context-aware moment *selection within the league* (e.g. derby only vs a rival).
+- [x] **Mini-game payoff & insight (v0.12.0)**: an animated outcome after each mini-game
+      (ball into the net / saved / wide, net shake, ring pulse, headline stamp), confetti
+      that **scales with the stakes** (trophy wins erupt), and the old raw rating/morale
+      numbers replaced by **plain-language consequences + a 💡 insight line** that explains
+      what the moment means. Logic in `Moments.describeResult` (unit-tested), animation in
+      `.outcome` CSS. Greater sense of accomplishment on every moment.
 
 ---
 

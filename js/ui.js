@@ -593,29 +593,33 @@
           res.wonTitle = moment.grant.trophy || (moment.grant.award && T.AWARDS[moment.grant.award] && T.AWARDS[moment.grant.award].name);
         }
       }
+      res.desc = T.Moments.describeResult(res, moment, game.type);
       T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
-      setTimeout(() => UI.renderMomentResult(res, done), 350);
+      setTimeout(() => UI.renderMomentResult(res, done), 320);
     });
   };
 
   UI.renderMomentResult = function (res, done) {
-    const d = res.deltas;
-    const chips = [];
-    if (res.success && res.effect === "goal") chips.push(`<span class="fx-chip good">⚽ Goal</span>`);
-    if (res.success && res.effect === "assist") chips.push(`<span class="fx-chip good">🅰 Assist</span>`);
-    if (d.rating) chips.push(`<span class="fx-chip ${d.rating >= 0 ? "good" : "bad"}">Rating ${d.rating >= 0 ? "+" : ""}${d.rating}</span>`);
-    if (d.morale) chips.push(`<span class="fx-chip ${d.morale >= 0 ? "good" : "bad"}">Morale ${d.morale >= 0 ? "+" : ""}${d.morale}</span>`);
-    if (d.form) chips.push(`<span class="fx-chip ${d.form >= 0 ? "good" : "bad"}">Form ${d.form >= 0 ? "+" : ""}${d.form}</span>`);
+    const desc = res.desc || { outcome: res.success ? "goal" : "miss", headline: res.success ? "GOAL!" : "MISSED", consequences: [], insight: "", big: false };
+    const kind = desc.outcome; // goal | assist | saved | miss
+    // Keeper reacts: beaten the wrong way on a goal, dives onto a save.
+    const keeperCls = kind === "saved" ? "dive-l" : kind === "goal" ? "dive-r" : "";
+    const chips = desc.consequences.map(c => `<span class="fx-chip ${c.tone}">${c.text}</span>`).join("");
 
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div style="height:5vh"></div>
-      <div class="brand pop-in" style="font-size:28px;color:${res.success ? 'var(--good)' : 'var(--bad)'}">
-        ${res.success ? "⚽ SUCCESS" : "✖ MISS"}
+      <div class="outcome oc-${kind} ${desc.big ? "big" : ""}">
+        <div class="oc-goal ${kind === "goal" ? "shake" : ""}"></div>
+        <div class="oc-keeper ${keeperCls}"></div>
+        <div class="oc-teammate"></div>
+        <div class="oc-ring"></div>
+        <div class="oc-ball ${kind}"></div>
+        <div class="oc-stamp ${res.success ? "good" : "bad"} show">${desc.headline}</div>
       </div>
-      ${res.gameText ? `<div class="center muted">${res.gameText}</div>` : ``}
+      ${res.gameText ? `<div class="center muted" style="margin-top:-2px">${res.gameText}</div>` : ``}
       <div class="card center"><p style="font-size:18px;margin:0">${res.text}</p></div>
-      <div class="fx-chips">${chips.join("")}</div>
+      ${chips ? `<div class="fx-chips">${chips}</div>` : ``}
+      ${desc.insight ? `<div class="card insight"><span class="ins-icon">💡</span><p>${desc.insight}</p></div>` : ``}
       ${res.matchAfter ? `<div class="card center">
         <div class="muted" style="font-size:12px">Match score</div>
         <b style="font-size:20px">${res.matchAfter.home
@@ -632,7 +636,12 @@
     `;
     wrap.querySelector("#cont").onclick = done;
     const root = app(); root.innerHTML = ""; wrap.classList.add("screen"); root.appendChild(wrap);
-    if (res.success) UI.confetti();
+    // Celebration scales with the stakes: a routine goal pops; a trophy erupts.
+    if (res.success) {
+      const burst = res.wonTitle ? 220 : desc.big ? 150 : 80;
+      setTimeout(() => UI.confetti(burst), 520);              // sync with the stamp pop
+      if (res.wonTitle) setTimeout(() => UI.confetti(180), 1000);
+    }
   };
 
   UI.renderResults = function (record, careerEnded) {

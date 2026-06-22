@@ -211,6 +211,27 @@ out-scored). It plays faithful careers (same loop as `ui.playSeason`). CI runs i
 push/PR via `.github/workflows/test.yml`. **Add an assertion here whenever you change a
 core rule or tuning number** — this is what catches a balance blow-up before merge.
 
+## Mini-game payoff & result insight (v0.12.0)
+
+The screen after a mini-game is the "juice" moment. Three parts:
+- **`Moments.describeResult(res, moment, gameType)`** (pure logic, in moments.js so it's
+  unit-tested): returns `{ outcome, headline, consequences[], insight, big }`.
+  `outcome` ∈ `goal | assist | saved | miss` (a miss on a keeper game — oneOnOne/aimTarget/
+  freeKick — reads as "saved"). `consequences` are **plain-language** chips derived from the
+  form/morale deltas (e.g. "😎 Confidence soaring") — *no raw rating/morale numbers* (the
+  per-moment rating delta was cosmetic anyway). `insight` teaches what it means; `big` =
+  high stakes (`stakesMult ≥ 1.5`) or a trophy win.
+- **`UI.renderMomentResult`** renders an **animated outcome stage** (`.outcome` in
+  styles.css): the ball flies into the net / wide / onto a keeper save, the net shakes, a
+  gold ring pulses, and the headline stamp pops — all CSS keyframes keyed off
+  `oc-${outcome}` / `.big`. Below it: the commentary line, the descriptive consequence
+  chips, and the 💡 insight card. Celebration **scales with stakes**: confetti burst is
+  80 (routine) / 150 (big) / 220 + a second burst (trophy), fired in sync with the stamp.
+- Mini-games themselves add a `.mg-flash` pop on completion (`minigames.js` `flash()`).
+- Specials reuse all of this (the stage shows `saved`/`goal`, `describeResult` tailors the
+  insight for `track:"intl"` and trophy wins). UI-only animation — covered by browser QA;
+  the `describeResult` logic is covered by the `result-insight` test group.
+
 ## Cup & international specials (v0.11.0)
 
 - **Two extra moment pools** (`Moments.POOL_CUP`, `POOL_INTL`) for moments that are NOT
