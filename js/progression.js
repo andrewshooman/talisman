@@ -154,6 +154,10 @@
 
     // Season awards (sets record.awards, advances national caps) before XP/totals.
     record.awards = Prog.rollAwards(record);
+    // Special awards won in cup/international finals (e.g. World Cup Winner).
+    if (record.extraAwards && record.extraAwards.length) {
+      record.awards = record.awards.concat(record.extraAwards);
+    }
     t.awards += record.awards.length;
 
     t.apps += record.apps;

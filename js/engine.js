@@ -185,12 +185,15 @@
 
     const trophies = [];
     if (finish === 1) trophies.push((divMeta ? divMeta.name : "League") + " Title");
-    if (T.rng() < (season.teams[0].str - 55) / 110) trophies.push("Domestic Cup");
+    // Cup / World Cup silverware comes from winning the relevant final moment
+    // (season.extraTrophies / extraAwards, set in ui.playMomentGame).
+    (season.extraTrophies || []).forEach(tn => trophies.push(tn));
 
     return {
       season: g.season, age: p.age, club: g.club.name, clubTier: g.club.tier,
       division: g.division, divisionName: divMeta ? divMeta.name : null,
       apps, goals, assists, rating, finish, trophies, matchRatings,
+      extraAwards: season.extraAwards || [],
       cleanSheets: 0, keyMoments: [],
       matches: matchList,
       table: table.map((t, i) => ({

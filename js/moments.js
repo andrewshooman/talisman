@@ -72,8 +72,8 @@
       ],
     },
     {
-      id: "penalty", scene: "goal", comp: "CUP", minute: 80, stakesMult: 1.4,
-      stakes: "A penalty in the cup — ice in the veins required.",
+      id: "penalty", scene: "goal", comp: "LEAGUE", minute: 80, stakesMult: 1.3,
+      stakes: "A penalty to win it — ice in the veins required.",
       prompt: "The referee points to the spot. The whole stadium holds its breath.",
       choices: [
         { label: "Blast it", stat: "finishing", difficulty: 56, effect: "goal",
@@ -161,33 +161,20 @@
           success: "Burned him and crossed for a tap-in. Assist!", fail: "Overran it out of play." },
       ],
     },
-    {
-      id: "final_breakaway", scene: "goal", comp: "FINAL", minute: 88, stakesMult: 1.7,
-      stakes: "Cup final, late — this is the moment careers are remembered for.",
-      prompt: "You break clear in the cup final with only the keeper to beat.",
-      choices: [
-        { label: "Round the keeper", stat: "dribbling", difficulty: 66, effect: "goal",
-          game: { type: "oneOnOne" },
-          impact: "Win the cup here and it headlines your legacy.",
-          success: "Round him and into an empty net — you've won the cup!", fail: "Keeper spread himself and saved." },
-        { label: "Early shot, low", stat: "finishing", difficulty: 60, effect: "goal",
-          game: { type: "timingBar", action: "SHOOT" },
-          impact: "A final-winning goal is worth a mountain of reputation.",
-          success: "Through his legs — final winner!", fail: "Dragged it just wide." },
-      ],
-    },
   ];
 
-  // Build runtime context for a moment, merging the real fixture if the UI
-  // attached one (moment._match: { rd, oppName, home, gh, ga }).
+  // Build runtime context for a moment. League moments merge the real fixture
+  // (moment._match); special cup/international moments carry their own opponent
+  // via moment._opp / moment._home and have no live league scoreline.
   Moments.context = function (moment) {
     const comp = T.COMPETITIONS[moment.comp] || T.COMPETITIONS.LEAGUE;
     const m = moment._match;
     return {
       comp: moment.comp, compLabel: comp.label, tone: comp.tone,
       minute: moment.minute, stakes: moment.stakes,
-      opponent: m ? m.oppName : (moment.comp === "MEDIA" ? null : T.randomClubName()),
-      home: m ? m.home : true,
+      tournament: moment.tournament || null,
+      opponent: m ? m.oppName : (moment._opp != null ? moment._opp : (moment.comp === "MEDIA" ? null : T.randomClubName())),
+      home: m ? m.home : (moment._home != null ? moment._home : true),
       gh: m ? m.gh : null, ga: m ? m.ga : null,
       round: m ? m.rd : null,
     };
@@ -228,5 +215,126 @@
       out.push(pool.splice(Math.floor(T.rng() * pool.length), 1)[0]);
     }
     return out;
+  };
+
+  // ---- Special moments: domestic cup run + international / World Cup ----
+  // These are NOT tied to a league fixture (no scoreline / table change). A
+  // FINAL whose `grant` is set awards silverware on a successful finish:
+  //   grant.trophy -> pushed to the season record's trophies
+  //   grant.award  -> added to the season's awards (e.g. World Cup Winner)
+  Moments.POOL_CUP = [
+    {
+      id: "cup_quarter", track: "cup", stage: "early", scene: "goal", comp: "CUP", minute: 79, stakesMult: 1.3,
+      tournament: "Domestic Cup · Quarter-Final",
+      stakes: "A cup quarter-final against a bigger club — a chance to make headlines.",
+      prompt: "The tie is level late on when a half-chance drops to you in the box.",
+      choices: [
+        { label: "Smash it first time", stat: "finishing", difficulty: 64, effect: "goal", game: { type: "timingBar", action: "SHOOT" },
+          impact: "Knock the favourites out and reach the semis.", success: "Buried it — giant-killing!", fail: "Snatched at it — wide." },
+        { label: "Compose and place it", stat: "positioning", difficulty: 54, effect: "goal", game: { type: "aimTarget" },
+          impact: "Pick your spot and send them through.", success: "Cool finish — into the semis!", fail: "The keeper read it." },
+      ],
+    },
+    {
+      id: "cup_semi", track: "cup", stage: "early", scene: "goal", comp: "CUP", minute: 85, stakesMult: 1.4,
+      tournament: "Domestic Cup · Semi-Final",
+      stakes: "A cup semi-final, deadlocked — win it and you reach the final.",
+      prompt: "Extra time looms as you wriggle free at the far post.",
+      choices: [
+        { label: "Volley it home", stat: "finishing", difficulty: 66, effect: "goal", game: { type: "timingBar", action: "VOLLEY" },
+          impact: "Send your club to the final.", success: "Volleyed in — you're in the FINAL!", fail: "Leaned back — over." },
+        { label: "Power header", stat: "physical", difficulty: 60, effect: "goal", game: { type: "timingBar", action: "HEAD" },
+          impact: "Rise highest and win it.", success: "Thumping header — final booked!", fail: "Couldn't keep it down." },
+      ],
+    },
+    {
+      id: "cup_final", track: "cup", stage: "final", scene: "goal", comp: "FINAL", minute: 88, stakesMult: 1.8,
+      tournament: "Domestic Cup Final", grant: { trophy: "Domestic Cup" },
+      stakes: "The Cup Final, all square. This is what careers are remembered for.",
+      prompt: "Deep into the final, the ball breaks to you with the keeper to beat.",
+      choices: [
+        { label: "Round the keeper", stat: "dribbling", difficulty: 66, effect: "goal", game: { type: "oneOnOne" },
+          impact: "Win the cup and lift the trophy.", success: "Round him and in — YOU'VE WON THE CUP!", fail: "The keeper spread himself." },
+        { label: "Curl it far post", stat: "finishing", difficulty: 64, effect: "goal", game: { type: "freeKick" },
+          impact: "A cup-winning goal lives forever.", success: "Bent it in — the cup is yours!", fail: "Inches wide." },
+      ],
+    },
+  ];
+
+  Moments.POOL_INTL = [
+    {
+      id: "intl_qualifier", track: "intl", stage: "qual", scene: "goal", comp: "INTL", minute: 77, stakesMult: 1.35,
+      tournament: "World Cup Qualifier",
+      stakes: "A World Cup qualifier for your nation — a goal could seal your place at the finals.",
+      prompt: "Your country needs a goal. The cross comes in and you've found space.",
+      choices: [
+        { label: "Attack the cross", stat: "physical", difficulty: 62, effect: "goal", game: { type: "timingBar", action: "HEAD" },
+          impact: "Send your nation toward the World Cup.", success: "Headed home for your country!", fail: "Missed your header." },
+        { label: "Cushion and finish", stat: "finishing", difficulty: 60, effect: "goal", game: { type: "timingBar", action: "SHOOT" },
+          impact: "A clinical finish on the international stage.", success: "Clinical — what a finish for your country!", fail: "Dragged it wide." },
+      ],
+    },
+    {
+      id: "wc_group", track: "intl", stage: "wcgroup", scene: "goal", comp: "WORLDCUP", minute: 74, stakesMult: 1.5,
+      tournament: "World Cup · Group Stage",
+      stakes: "Your first World Cup. A group-stage goal could light up the tournament.",
+      prompt: "On the biggest stage of all, the ball sits up for you 18 yards out.",
+      choices: [
+        { label: "Let fly", stat: "finishing", difficulty: 66, effect: "goal", game: { type: "timingBar", action: "STRIKE" },
+          impact: "Announce yourself at the World Cup.", success: "Top corner — a World Cup goal!", fail: "Whistled over." },
+        { label: "Skip past and slot", stat: "dribbling", difficulty: 64, effect: "goal", game: { type: "dribbleDodge" },
+          impact: "Dance through and finish on the world stage.", success: "Mazy run and finish — the world is watching!", fail: "Crowded out." },
+      ],
+    },
+    {
+      id: "wc_final", track: "intl", stage: "wcfinal", scene: "goal", comp: "WORLDCUP", minute: 90, stakesMult: 2.0,
+      tournament: "World Cup Final", grant: { award: "worldCup", trophy: "World Cup" },
+      stakes: "The World Cup Final. Win this and you are immortal.",
+      prompt: "The final, level, the last minute — the ball falls to you on the edge of the box.",
+      choices: [
+        { label: "Shoot for glory", stat: "finishing", difficulty: 68, effect: "goal", game: { type: "timingBar", action: "STRIKE" },
+          impact: "A World Cup winner — the greatest goal of all.", success: "GOAL! YOU'VE WON THE WORLD CUP!", fail: "Agonisingly wide." },
+        { label: "Round the keeper", stat: "dribbling", difficulty: 70, effect: "goal", game: { type: "oneOnOne" },
+          impact: "Beat the keeper and lift the World Cup.", success: "Round him and in — CHAMPIONS OF THE WORLD!", fail: "The keeper saved it." },
+      ],
+    },
+  ];
+
+  const byId = (pool, id) => pool.find(m => m.id === id);
+
+  // Pick this season's special moments: a domestic cup run (which may reach the
+  // final) and, once the player is a capped international, an international game
+  // (a World Cup match every 4th season, otherwise a qualifier).
+  Moments.pickSpecials = function (g, season) {
+    const p = g.player, out = [];
+    const clubStr = T.playerClubStr ? T.playerClubStr() : 60;
+
+    // Domestic cup: reach the final (prob scales with club strength), else a tie.
+    if (T.rng() < T.clamp((clubStr - 48) / 80, 0.1, 0.55)) {
+      out.push(byId(Moments.POOL_CUP, "cup_final"));
+    } else if (T.rng() < 0.7) {
+      const early = Moments.POOL_CUP.filter(m => m.stage === "early");
+      out.push(T.pick(early));
+    }
+
+    // International: only once capped. World Cup every 4th season.
+    if ((p.caps || 0) > 0) {
+      if (g.season % 4 === 0) {
+        const reachFinal = T.rng() < T.clamp((T.overall() - 74) / 55, 0.05, 0.5);
+        out.push(byId(Moments.POOL_INTL, reachFinal ? "wc_final" : "wc_group"));
+      } else if (T.rng() < 0.6) {
+        out.push(byId(Moments.POOL_INTL, "intl_qualifier"));
+      }
+    }
+
+    // Attach a synthetic opponent (cup: a club; international: another nation).
+    out.forEach(mo => {
+      if (!mo) return;
+      mo._home = T.rng() < 0.5;
+      mo._opp = mo.track === "intl"
+        ? T.pick(T.NATIONS.filter(n => n !== p.nation))
+        : T.randomClubName();
+    });
+    return out.filter(Boolean);
   };
 })();

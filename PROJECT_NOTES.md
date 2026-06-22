@@ -199,6 +199,42 @@ T.game = {
   chips and an honours cabinet tallying awards across the whole career (`×N`).
 - Reuses existing `.cabinet`/`.trophy-item` CSS — no new styles.
 
+## Testing (committed) — `node tests/run.js` / `npm test`
+
+`tests/run.js` is a **dependency-free** Node suite (shims `window` + `localStorage`) that
+loads the logic modules and asserts the invariants: static data integrity (80 clubs,
+20/division, colours), RNG determinism, new-game + division mapping, **save/load
+round-trip**, **ladder integrity through full careers** (incl. transfers + specials),
+identity change on transfer, the cup/international specials (grants, gating, World Cup
+award folding), and **loose balance bounds** (GOAT rate rare-but-reachable, low starts not
+out-scored). It plays faithful careers (same loop as `ui.playSeason`). CI runs it on every
+push/PR via `.github/workflows/test.yml`. **Add an assertion here whenever you change a
+core rule or tuning number** — this is what catches a balance blow-up before merge.
+
+## Cup & international specials (v0.11.0)
+
+- **Two extra moment pools** (`Moments.POOL_CUP`, `POOL_INTL`) for moments that are NOT
+  tied to a league fixture (no `_match`/`_rd`, no table change). `Moments.pickSpecials(g,
+  season)` returns this season's specials: a **domestic cup** run (reach-final prob scales
+  with club strength; the `cup_final` `grant.trophy` = "Domestic Cup"), and — once
+  `player.caps > 0` — an **international** game, with a **World Cup every 4th season**
+  (`g.season % 4 === 0`); `wc_final` carries `grant.award: "worldCup"` (+ a "World Cup"
+  trophy). `pickSpecials` attaches `_opp` (a club, or for `track:"intl"` another nation)
+  and `_home`.
+- **Flow:** `ui.playSeason` plays the league moments, then `pickSpecials`, in one sequence
+  (`moments.concat(pickSpecials)`). For a special, `playMomentGame` skips `applyMoment`/
+  scoreline (gated on `moment._rd != null`) and instead, on a successful `grant` final,
+  pushes to `season.extraTrophies` / `season.extraAwards`. `engine.finalizeSeason` folds
+  `extraTrophies` into `record.trophies` (the old coin-flip cup is gone) and sets
+  `record.extraAwards`; `progression.advanceSeason` merges `extraAwards` into the season's
+  awards (so a World Cup counts in `totals.awards` → legacy). `renderMoment` shows the
+  `tournament` banner and uses the **nation** as the player's side for `track:"intl"`.
+- **Balance:** specials add silverware but stay rare; loyal careers sit ~Legend median /
+  GOAT ~5%, ~1-in-3 careers wins a World Cup. The aggressive transfer+specials min-max
+  ceiling is ~12% GOAT (the reward for mastery). Gated by the `balance` test group.
+- To add a competition: add scenarios to the pools (`track`, `tournament`, optional
+  `grant`), and extend `pickSpecials` scheduling. No UI change needed.
+
 ## Balance audit & how to re-run it
 
 A headless harness validates the sim without the DOM: `node`-load the logic modules
