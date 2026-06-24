@@ -155,7 +155,11 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
 
 - [ ] Retirement screen: trophy cabinet, defining moments (from `momentsLog`),
       stat totals, shareable score string.
-- [ ] Legacy weighting pass: loyalty (one-club) vs journeyman variety bonus.
+- [x] **Loyalty vs journeyman legacy (v0.14.0)**: one-club careers and well-travelled
+      careers each earn a legacy bonus (`legacy.compute` `loyalty` term from
+      `clubsPlayedFor`), amplified by the now-live **`loyal`** / **`mercenary`** perks
+      (previously dead). Retirement shows a career **archetype** (One-Club Legend /
+      Journeyman / Globetrotter …). Unit-tested; balance unchanged.
 - [ ] Rating count-up animation, trophy-win full-screen flourish, haptic-style juice.
 - [ ] PWA: `manifest.json` + icons so "Add to Home Screen" looks native.
 - [ ] Settings: reset save, toggle confetti, (optional) sound.
@@ -182,15 +186,15 @@ PROJECT_NOTES "League world" for the data shapes & ladder model.
       coin-flip in `finalizeSeason`); tie cup-final key moments to actual rounds.
 - [ ] **Contracts & wages** — multi-year contracts, renewal decisions, a wage/budget
       number that feeds transfer realism and a "mercenary vs loyal" legacy fork.
-- [ ] **Loyalty / journeyman legacy** — wire the dangling `loyal` & `mercenary` perks
-      into `legacy.compute` once transfers exist (one-club bonus vs variety bonus).
+- [x] **Loyalty / journeyman legacy** — done (v0.14.0): `loyal`/`mercenary` perks now
+      feed `legacy.compute` via `clubsPlayedFor`, with a retirement archetype label.
 
 ---
 
 ## Now / Next / Later (quick view)
 
-- **Now:** Loyalty vs journeyman legacy (wire `loyal`/`mercenary` + `clubsPlayedFor` now
-  that transfers exist) · context-aware moment selection (free kick on set-pieces only).
-- **Next:** Retirement polish (defining moments from `momentsLog`) · awards in Hall of
-  Fame/share · more mini-games (headed power, long-shot swerve) · screen count-ups.
+- **Now:** Retirement "defining moments" (surface `momentsLog`) · context-aware moment
+  selection (e.g. derby only vs a rival) · awards/division in Hall of Fame + share codes.
+- **Next:** More mini-games (headed power, long-shot swerve) · rating count-up + trophy
+  flourish · settings (reset save, toggle confetti) · PWA manifest.
 - **Later:** Other positions (MID/DEF/GK) · PWA · cups · contracts · NG+ · rivals.

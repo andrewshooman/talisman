@@ -789,6 +789,7 @@
   UI.screens.retirement = function () {
     const g = T.game, t = g.totals;
     const L = T.Legacy.compute();
+    const arch = T.Legacy.archetype();
 
     // Build a Hall-of-Fame entry and save it once per career.
     const entry = {
@@ -835,6 +836,13 @@
           ${rank ? `<div class="muted" style="font-size:12px;margin-top:4px">Hall of Fame: <b class="gold">#${rank}</b></div>` : ``}
           ${g.daily ? `<div class="pill" style="margin-top:6px">⚡ Daily ${g.daily}</div>` : ``}
         </div>
+      </div>
+
+      <div class="card center pop-in">
+        <div style="font-size:30px;line-height:1">${arch.icon}</div>
+        <b class="gold" style="font-size:18px">${arch.name}</b>
+        <div class="muted" style="font-size:12px;margin-top:2px">${arch.blurb}</div>
+        <div class="muted" style="font-size:11px;margin-top:6px">${L.breakdown.clubs} club${L.breakdown.clubs === 1 ? "" : "s"} · loyalty bonus +${L.breakdown.loyalty}</div>
       </div>
 
       ${T.Vis.playerCard(g.player, g.club, t.peakRating ? Math.round(t.peakRating * 10) : T.overall())}
