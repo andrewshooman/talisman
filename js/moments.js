@@ -208,14 +208,28 @@
   };
 
   // Plain-language read of a key-moment result for the UI: the animation kind,
-  // a headline, descriptive consequences (no raw rating/morale numbers), an
-  // insight line that teaches what it means, and whether to celebrate big.
-  Moments.describeResult = function (res, moment, gameType) {
+  // a representative ACTION (so the goal animation looks like the real move),
+  // a headline, descriptive consequences (no raw numbers), an insight line, and
+  // whether to celebrate big.
+  Moments.describeResult = function (res, moment, choice) {
+    const game = (choice && choice.game) || {};
+    const gameType = game.type;
     const keeperGame = gameType === "oneOnOne" || gameType === "aimTarget" || gameType === "freeKick";
     const outcome = res.success
       ? (res.effect === "assist" ? "assist" : "goal")
       : (keeperGame ? "saved" : "miss");
     const headline = { goal: "GOAL!", assist: "ASSIST!", saved: "SAVED!", miss: "MISSED" }[outcome];
+
+    // Which real-football action does this depict? Drives the animation.
+    let action;
+    if (res.effect === "assist") action = "cutback";
+    else if (gameType === "freeKick") action = "freekick";
+    else if (gameType === "oneOnOne") action = "roundkeeper";
+    else if (gameType === "dribbleDodge") action = "dribble";
+    else if (game.action === "HEAD") action = "header";
+    else if (game.action === "VOLLEY") action = "volley";
+    else if (moment && moment.id === "penalty") action = "penalty";
+    else action = "strike";
 
     const d = res.deltas || {};
     const cons = [];
@@ -243,7 +257,7 @@
       ? "It slips away this time — but the best strikers are defined by how they respond to the big misses."
       : "A chance gone. Shake it off — your form and confidence ride on bouncing straight back.";
 
-    return { outcome, headline, consequences: cons, insight, big };
+    return { outcome, action, headline, consequences: cons, insight, big };
   };
 
   Moments.pickSeason = function (n) {

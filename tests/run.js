@@ -207,19 +207,30 @@ group("specials", () => {
 group("result-insight", () => {
   const dr = T.Moments.describeResult;
   const mLeague = { stakesMult: 1.15 }, mFinal = { stakesMult: 1.8 }, mIntl = { track: "intl", stakesMult: 1.5 };
-  const g1 = dr({ success: true, effect: "goal", deltas: { morale: 6, form: 2 } }, mLeague, "timingBar");
+  const ch = (type, action) => ({ game: { type, action } });
+
+  const g1 = dr({ success: true, effect: "goal", deltas: { morale: 6, form: 2 } }, mLeague, ch("timingBar", "SHOOT"));
   ok(g1.outcome === "goal" && g1.headline === "GOAL!", "scored -> goal headline");
   ok(g1.consequences.length >= 1 && g1.insight, "goal has consequences + insight");
   ok(g1.consequences.every(c => !/[+\-]\d/.test(c.text)), "consequences are words, not raw numbers");
-  const a1 = dr({ success: true, effect: "assist", deltas: { morale: 4 } }, mLeague, "aimTarget");
-  ok(a1.outcome === "assist" && a1.headline === "ASSIST!", "assist -> assist headline");
-  const s1 = dr({ success: false, effect: "goal", deltas: { morale: -5, form: -2 } }, mLeague, "oneOnOne");
-  ok(s1.outcome === "saved", "missed a keeper game -> saved");
-  const miss = dr({ success: false, effect: "goal", deltas: { morale: -5 } }, mLeague, "dribbleDodge");
-  ok(miss.outcome === "miss", "missed an open-play game -> miss");
-  const wc = dr({ success: true, effect: "goal", wonTitle: "World Cup", deltas: { morale: 10 } }, mIntl, "timingBar");
+
+  const a1 = dr({ success: true, effect: "assist", deltas: { morale: 4 } }, mLeague, ch("aimTarget"));
+  ok(a1.outcome === "assist" && a1.action === "cutback", "assist -> assist outcome + cutback action");
+  const s1 = dr({ success: false, effect: "goal", deltas: { morale: -5, form: -2 } }, mLeague, ch("oneOnOne"));
+  ok(s1.outcome === "saved" && s1.action === "roundkeeper", "missed one-on-one -> saved + roundkeeper");
+  const miss = dr({ success: false, effect: "goal", deltas: { morale: -5 } }, mLeague, ch("dribbleDodge"));
+  ok(miss.outcome === "miss" && miss.action === "dribble", "missed dribble -> miss + dribble action");
+
+  // representative action variants
+  ok(dr({ success: true, effect: "goal", deltas: {} }, mLeague, ch("freeKick")).action === "freekick", "free kick -> freekick action");
+  ok(dr({ success: true, effect: "goal", deltas: {} }, mLeague, ch("timingBar", "HEAD")).action === "header", "header action");
+  ok(dr({ success: true, effect: "goal", deltas: {} }, mLeague, ch("timingBar", "VOLLEY")).action === "volley", "volley action");
+  ok(dr({ success: true, effect: "goal", deltas: {} }, { id: "penalty", stakesMult: 1.3 }, ch("timingBar", "STRIKE")).action === "penalty", "penalty action");
+  ok(dr({ success: true, effect: "goal", deltas: {} }, mLeague, ch("timingBar", "SHOOT")).action === "strike", "default -> strike action");
+
+  const wc = dr({ success: true, effect: "goal", wonTitle: "World Cup", deltas: { morale: 10 } }, mIntl, ch("timingBar", "STRIKE"));
   ok(wc.big === true && /World Cup/.test(wc.insight), "trophy win -> big celebration + tailored insight");
-  const fin = dr({ success: true, effect: "goal", deltas: { morale: 8 } }, mFinal, "freeKick");
+  const fin = dr({ success: true, effect: "goal", deltas: { morale: 8 } }, mFinal, ch("freeKick"));
   ok(fin.big === true, "high-stakes success flagged big");
 });
 

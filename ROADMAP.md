@@ -100,6 +100,14 @@ The skeleton plays end-to-end but numbers are first-pass. This phase is about fe
       numbers replaced by **plain-language consequences + a 💡 insight line** that explains
       what the moment means. Logic in `Moments.describeResult` (unit-tested), animation in
       `.outcome` CSS. Greater sense of accomplishment on every moment.
+- [x] **Representative animations + stat explanations (v0.13.0)**: the outcome animation
+      now depicts the *actual* move — header off a cross, free kick curled around a wall,
+      penalty from the spot, one-on-one with the keeper rushing out, dribble weaving past
+      defenders, cutback to a teammate — via an `action` variant from `describeResult`
+      (unit-tested). Plus inline **stat legends** explaining what Fitness / Morale / Form
+      (hub) and Match Rating (results) mean and why they matter, and a Match Rating glossary
+      entry. Addresses "animations should look like the real moment" + "no reasoning for
+      what the stats mean."
 
 ---
 
