@@ -307,6 +307,11 @@ input[type="text"], select {
 /* Rating ring row */
 .ring-row { display: flex; gap: 10px; justify-content: space-around; flex-wrap: wrap; align-items: center; }
 
+/* Inline "what this stat means" legend under ring cards */
+.stat-legend { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.stat-legend > div { font-size: 12px; color: var(--muted); line-height: 1.42; }
+.stat-legend b { color: var(--text); font-weight: 700; }
+
 /* League position ladder */
 .league-pos { display: flex; flex-direction: column; gap: 6px; }
 .lp-bar { display: flex; gap: 2px; align-items: flex-end; height: 24px; }
@@ -605,6 +610,62 @@ input[type="text"], select {
 .card.insight { display: flex; gap: 10px; align-items: flex-start; text-align: left; }
 .insight .ins-icon { font-size: 18px; line-height: 1.4; }
 .insight p { margin: 0; font-size: 13px; color: var(--text); line-height: 1.45; }
+
+/* ---- action-specific outcome animation (looks like the real move) ---- */
+.oc-action-label { font-size: 12px; letter-spacing: .04em; text-transform: uppercase; margin-top: -2px; }
+
+/* props are hidden unless their variant is active */
+.oc-wall, .oc-spot, .oc-def, .oc-cross { display: none; }
+
+/* Free kick — a defensive wall to bend it around */
+.oc-act-freekick .oc-wall {
+  display: block; position: absolute; top: 112px; left: 50%; margin-left: -34px;
+  width: 68px; height: 42px; border-radius: 4px;
+  background: repeating-linear-gradient(90deg, #23233a 0 9px, #11111a 9px 12px);
+  box-shadow: 0 5px 12px rgba(0,0,0,.5);
+}
+/* Penalty — the spot */
+.oc-act-penalty .oc-spot { display: block; position: absolute; bottom: 24px; left: 50%; margin-left: -3px; width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: .85; }
+/* Dribble — defenders to beat */
+.oc-act-dribble .oc-def { display: block; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: #c0556a; box-shadow: 0 0 8px rgba(192,85,106,.5); }
+.oc-act-dribble .oc-def1 { top: 118px; left: 40%; }
+.oc-act-dribble .oc-def2 { top: 150px; left: 58%; }
+/* Header — an incoming cross arc */
+.oc-act-header .oc-cross { display: block; position: absolute; top: 58px; right: 16px; width: 120px; height: 60px; border-top: 2px dashed rgba(255,255,255,.22); border-right: 2px dashed rgba(255,255,255,.22); border-top-right-radius: 60px; opacity: .6; }
+
+/* ball start positions per variant */
+.oc-act-penalty .oc-ball { bottom: 22px; }
+.oc-act-header .oc-ball { bottom: auto; top: 54px; left: 78%; }
+
+/* HEADER — ball comes in off the cross and is nodded down into the net */
+.oc-act-header.oc-goal .oc-ball { animation: ballHeaderGoal .6s cubic-bezier(.3,.1,.5,1) forwards; }
+.oc-act-header.oc-saved .oc-ball { animation: ballHeaderSaved .55s ease-out forwards; }
+.oc-act-header.oc-miss .oc-ball { animation: ballHeaderMiss .6s ease-out forwards; }
+@keyframes ballHeaderGoal { 0% { transform: translate(0,0) scale(.7); } 55% { transform: translate(-60px,8px) scale(1); } 100% { transform: translate(-88px,34px) scale(.85); } }
+@keyframes ballHeaderSaved { 0% { transform: translate(0,0) scale(.7); } 100% { transform: translate(-72px,20px) scale(.9); } }
+@keyframes ballHeaderMiss { 0% { transform: translate(0,0) scale(.7); } 100% { transform: translate(-118px,-34px) scale(.6); } }
+
+/* FREE KICK — curl up and around the wall into the top corner */
+.oc-act-freekick.oc-goal .oc-ball { animation: ballFkGoal .72s cubic-bezier(.4,0,.3,1) forwards; }
+.oc-act-freekick.oc-saved .oc-ball { animation: ballFkSaved .6s ease-out forwards; }
+.oc-act-freekick.oc-miss .oc-ball { animation: ballFkMiss .65s ease-out forwards; }
+@keyframes ballFkGoal { 0% { transform: translate(0,0) scale(1); } 45% { transform: translate(-46px,-66px) scale(.85); } 100% { transform: translate(-62px,-150px) scale(.6); } }
+@keyframes ballFkSaved { 0% { transform: translate(0,0); } 100% { transform: translate(-30px,-116px) scale(.72); } }
+@keyframes ballFkMiss { 0% { transform: translate(0,0); } 100% { transform: translate(-148px,-150px) scale(.55); } }
+
+/* DRIBBLE — weave past the defenders, then finish */
+.oc-act-dribble.oc-goal .oc-ball { animation: ballDribbleGoal .82s ease-in-out forwards; }
+@keyframes ballDribbleGoal { 0% { transform: translate(0,0); } 28% { transform: translate(-26px,-48px); } 55% { transform: translate(26px,-92px); } 100% { transform: translate(-20px,-150px) scale(.65); } }
+
+/* CUTBACK — to the byline, then pulled back across for the teammate */
+.oc-act-cutback.oc-assist .oc-ball { animation: ballCutback 1s ease-in-out forwards; }
+.oc-act-cutback.oc-miss .oc-ball { animation: ballMiss .6s ease-out forwards; }
+@keyframes ballCutback { 0% { transform: translate(0,0); } 42% { transform: translate(82px,-120px) scale(.72); } 66% { transform: translate(82px,-120px) scale(.72); } 100% { transform: translate(28px,-150px) scale(.6); } }
+.oc-act-cutback .oc-teammate { top: auto; bottom: 78px; left: 60%; }
+
+/* ONE-ON-ONE — keeper rushes out to close the angle */
+.oc-act-roundkeeper .oc-keeper { animation: keeperRush .5s ease forwards; }
+@keyframes keeperRush { 0% { transform: translateY(0); } 100% { transform: translate(20px,54px) scale(.9) rotate(12deg); } }
 
 /* Transfer offer cards */
 .btn.offer-btn {

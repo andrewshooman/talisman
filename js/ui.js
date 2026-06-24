@@ -209,12 +209,19 @@
         <div class="radar-wrap">${T.Vis.radar(p.stats, keys, 240)}</div>
       </div>
 
-      <div class="card ring-row">
-        ${T.Vis.ring(p.fitness, 100, "Fitness", 84)}
-        ${T.Vis.ring(p.morale, 100, "Morale", 84)}
-        <div class="center">
-          <div class="pill ${p.form >= 0 ? 'gold' : ''}">Form ${(p.form >= 0 ? "+" : "") + p.form}</div>
-          <div class="muted" style="font-size:12px;margin-top:8px">Level ${p.level}</div>
+      <div class="card">
+        <div class="ring-row">
+          ${T.Vis.ring(p.fitness, 100, "Fitness", 84)}
+          ${T.Vis.ring(p.morale, 100, "Morale", 84)}
+          <div class="center">
+            <div class="pill ${p.form >= 0 ? 'gold' : ''}">Form ${(p.form >= 0 ? "+" : "") + p.form}</div>
+            <div class="muted" style="font-size:12px;margin-top:8px">Level ${p.level}</div>
+          </div>
+        </div>
+        <div class="stat-legend">
+          <div><b>💪 Fitness</b> — how many games you're fit for. Low fitness = missed matches & fewer goals.</div>
+          <div><b>😊 Morale</b> — confidence. Lifts your <b>Form</b> over time; scoring in big moments raises it.</div>
+          <div><b>⚡ Form</b> — this season's hot/cold streak. Swings your goal output <i>and</i> your key-moment rolls.</div>
         </div>
       </div>
 
@@ -593,29 +600,45 @@
           res.wonTitle = moment.grant.trophy || (moment.grant.award && T.AWARDS[moment.grant.award] && T.AWARDS[moment.grant.award].name);
         }
       }
-      res.desc = T.Moments.describeResult(res, moment, game.type);
+      res.desc = T.Moments.describeResult(res, moment, choice);
       T.game.momentsLog.push({ season: T.game.season, text: res.text, success: res.success });
       setTimeout(() => UI.renderMomentResult(res, done), 320);
     });
   };
 
+  // Short label for the depicted move (shown under the outcome animation).
+  UI.actionLabel = function (action) {
+    return ({
+      header: "Header", volley: "Volley", freekick: "Free kick", penalty: "Penalty",
+      roundkeeper: "One-on-one", dribble: "Dribble & finish", cutback: "Cutback", strike: "Strike",
+    })[action] || "";
+  };
+
   UI.renderMomentResult = function (res, done) {
-    const desc = res.desc || { outcome: res.success ? "goal" : "miss", headline: res.success ? "GOAL!" : "MISSED", consequences: [], insight: "", big: false };
-    const kind = desc.outcome; // goal | assist | saved | miss
-    // Keeper reacts: beaten the wrong way on a goal, dives onto a save.
-    const keeperCls = kind === "saved" ? "dive-l" : kind === "goal" ? "dive-r" : "";
+    const desc = res.desc || { outcome: res.success ? "goal" : "miss", action: "strike", headline: res.success ? "GOAL!" : "MISSED", consequences: [], insight: "", big: false };
+    const kind = desc.outcome;   // goal | assist | saved | miss
+    const action = desc.action || "strike"; // header | volley | freekick | penalty | roundkeeper | dribble | cutback | strike
+    // Keeper reacts: dives onto a save, beaten the wrong way on a goal (the
+    // one-on-one rushes out instead, handled by the .oc-act-roundkeeper class).
+    const keeperCls = kind === "saved" ? "dive-l" : (kind === "goal" && action !== "roundkeeper") ? "dive-r" : "";
     const chips = desc.consequences.map(c => `<span class="fx-chip ${c.tone}">${c.text}</span>`).join("");
 
     const wrap = el(`<div class="col"></div>`);
     wrap.innerHTML = `
-      <div class="outcome oc-${kind} ${desc.big ? "big" : ""}">
+      <div class="outcome oc-${kind} oc-act-${action} ${desc.big ? "big" : ""}">
         <div class="oc-goal ${kind === "goal" ? "shake" : ""}"></div>
+        <div class="oc-wall"></div>
+        <div class="oc-spot"></div>
+        <div class="oc-def oc-def1"></div>
+        <div class="oc-def oc-def2"></div>
         <div class="oc-keeper ${keeperCls}"></div>
         <div class="oc-teammate"></div>
+        <div class="oc-cross"></div>
         <div class="oc-ring"></div>
         <div class="oc-ball ${kind}"></div>
         <div class="oc-stamp ${res.success ? "good" : "bad"} show">${desc.headline}</div>
       </div>
+      <div class="center muted oc-action-label">${UI.actionLabel(action)}</div>
       ${res.gameText ? `<div class="center muted" style="margin-top:-2px">${res.gameText}</div>` : ``}
       <div class="card center"><p style="font-size:18px;margin:0">${res.text}</p></div>
       ${chips ? `<div class="fx-chips">${chips}</div>` : ``}
@@ -679,13 +702,16 @@
 
       ${proRelHtml}
 
-      <div class="card ring-row">
-        ${T.Vis.ring(record.rating, 10, "Avg rating", 96)}
-        <div class="col center" style="gap:2px">
-          <div class="row" style="gap:14px">
-            ${chip("Apps", record.apps)}${chip("Goals", record.goals)}${chip("Assists", record.assists)}
+      <div class="card">
+        <div class="ring-row">
+          ${T.Vis.ring(record.rating, 10, "Avg rating", 96)}
+          <div class="col center" style="gap:2px">
+            <div class="row" style="gap:14px">
+              ${chip("Apps", record.apps)}${chip("Goals", record.goals)}${chip("Assists", record.assists)}
+            </div>
           </div>
         </div>
+        <div class="stat-legend"><div><b>📊 Match rating</b> (out of 10) — how well you performed across the season. It drives your <b>XP</b> (and level-ups), your shot at <b>Player of the Season</b>, and your peak-rating bonus to your final <b>Legacy</b>.</div></div>
       </div>
 
       ${trophyHtml}

@@ -211,6 +211,25 @@ out-scored). It plays faithful careers (same loop as `ui.playSeason`). CI runs i
 push/PR via `.github/workflows/test.yml`. **Add an assertion here whenever you change a
 core rule or tuning number** — this is what catches a balance blow-up before merge.
 
+## Representative outcome animations + stat legends (v0.13.0)
+
+- **`Moments.describeResult(res, moment, choice)`** now also returns an `action` variant so
+  the goal animation looks like the real move: `header` (action HEAD) · `volley` (VOLLEY) ·
+  `freekick` (game freeKick) · `roundkeeper` (oneOnOne) · `dribble` (dribbleDodge) ·
+  `cutback` (any assist) · `penalty` (moment id "penalty") · `strike` (default). Pure +
+  unit-tested (`result-insight` group). NOTE the signature changed from `gameType` (string)
+  to the full `choice` — update callers if you touch it.
+- **`ui.renderMomentResult`** renders `.outcome oc-${outcome} oc-act-${action}`. Each
+  variant shows its own props (wall / penalty spot / two defenders / cross arc / teammate)
+  and the ball follows an action-specific CSS trajectory (`ballHeaderGoal`, `ballFkGoal`,
+  `ballDribbleGoal`, `ballCutback`, …); the keeper rushes out for `roundkeeper`, dives for
+  saves/penalties. A short `UI.actionLabel(action)` caption sits under the stage. All in
+  `styles.css` — to add a move, add a variant branch in `describeResult` + the props/keyframes.
+- **Stat legends (the "what does this mean" fix):** the hub's fitness/morale ring card now
+  carries a `.stat-legend` explaining Fitness (availability), Morale (→ Form) and Form
+  (output + key-moment swings); the results rating card explains Match Rating drives XP /
+  Player-of-the-Season / peak-rating legacy. Added a "Match Rating" glossary entry.
+
 ## Mini-game payoff & result insight (v0.12.0)
 
 The screen after a mini-game is the "juice" moment. Three parts:

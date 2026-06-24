@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.12.0";
+  T.VERSION = "0.13.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -313,6 +313,7 @@
     { term: "Form", text: "A volatile, per-season modifier (-10 to +10). Good runs and good morale lift it; it boosts (or drags) your output and key-moment rolls." },
     { term: "Morale", text: "How happy you are (0–100). Scoring in big moments lifts it; failures and poor seasons lower it. It feeds into your form." },
     { term: "Fitness", text: "Your condition (0–100). Low fitness means you miss more matches (fewer appearances) and score less. Injuries cut it; resting recovers it." },
+    { term: "Match Rating", text: "Your average performance score out of 10 across the season, built from your goals, assists and results. It's the engine of progression: higher ratings earn more XP (faster level-ups and training points), put you in contention for Player of the Season, and your career-best (peak) rating adds a bonus to your final Legacy Score." },
     { term: "Training", text: "Spend training points to raise attributes. The Train screen shows a live projection of how your changes move your expected goals, assists and rating before you commit." },
     { term: "Key Moments", text: "A few matches each season pause on a decisive chance. Pick an action, play the skill mini-game, and the outcome is added to THAT match — it can turn a draw into a win and shift the table." },
     { term: "Mini-games", text: "Timing bar (strike on the gold zone), Aim target (place your shot), Reaction tap (beat the cue), Dribble dodge (weave past defenders), One-on-one (beat the onrushing keeper), Free kick (set power then curl it over the wall), Give & go (a three-tap one-two rhythm). Higher attributes make them more forgiving." },
