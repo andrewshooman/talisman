@@ -9,7 +9,7 @@
   const T = (window.TALISMAN = window.TALISMAN || {});
 
   // ---- Meta ----
-  T.VERSION = "0.13.0";
+  T.VERSION = "0.14.0";
   T.SAVE_KEY = "talisman.save.v1";
   T.START_AGE = 17;
   T.SEASON_GAMES = 38;
@@ -323,7 +323,8 @@
     { term: "Promotion & Relegation", text: "You play in a four-division English-style pyramid (Prime League → Championship → League One → League Two). Finish in the top three and you go up; bottom three and you go down — and the clubs around you move too. Climbing the pyramid is the heart of a great career." },
     { term: "Transfers", text: "A strong season turns heads. In the transfer window you may get offers to join a bigger club — a step up the pyramid or a marquee move — and you adopt that club's name, colours and division. Move on to climb faster, or stay loyal and build your story at one club." },
     { term: "Cups & The World Cup", text: "Beyond the league you get cup runs — win the final to lift the Domestic Cup. Once you earn a national call-up, you'll play international games, and every fourth season is a World Cup: win the final and you're a World Cup Winner, one of the rarest honours of all. Cup and international moments aren't league games, so they don't change the table — but the silverware shapes your legacy." },
-    { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating and longevity, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
+    { term: "Legacy Score & Tiers", text: "Your career score: goals, assists, trophies, peak rating, longevity, your international caps, and a loyalty bonus, all multiplied by your starting difficulty. It ranks you Squad Player → Cult Hero → Star → Legend → Immortal → GOAT." },
+    { term: "Loyalty vs Journeyman", text: "How you build your career counts. Spend it all at one club to become a One-Club Legend (boosted by the Loyal perk), or move around to become a Journeyman/Globetrotter (boosted by the Mercenary perk). Each path earns its own legacy bonus, and your career-shape archetype is revealed when you retire." },
     { term: "Hall of Fame & Sharing", text: "Every finished career is saved to your local Hall of Fame and ranked by Legacy Score. Share a career code with friends, or paste theirs in to compare. The Daily Challenge gives everyone the same starting career to compete on fairly." },
   ];
 })();

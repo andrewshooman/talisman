@@ -235,6 +235,32 @@ group("result-insight", () => {
 });
 
 // ============================================================
+// 7c. Loyalty vs journeyman legacy fork
+// ============================================================
+group("loyalty", () => {
+  function setup(clubs, seasons, perks) {
+    T.newGame({ seed: 5, position: "FWD", clubTier: 3 });
+    T.game.totals.clubsPlayedFor = clubs;
+    T.game.history = Array.from({ length: seasons }, () => ({ clubTier: 3 }));
+    T.game.player.perks = perks || [];
+    T.game.totals.goals = 200; T.game.totals.assists = 100; T.game.totals.peakRating = 7.2;
+    return T.Legacy.compute();
+  }
+  const oneClub = setup(1, 14, []);
+  const oneClubLoyal = setup(1, 14, ["loyal"]);
+  ok(oneClubLoyal.score > oneClub.score, "Loyal perk boosts a one-club career");
+  ok(oneClub.breakdown.loyalty > 0, "one-club career earns a loyalty bonus");
+  const jman = setup(5, 14, []);
+  const jmanMerc = setup(5, 14, ["mercenary"]);
+  ok(jmanMerc.score > jman.score, "Mercenary perk boosts a journeyman career");
+  ok(jman.breakdown.clubs === 5, "breakdown reports clubs played");
+  ok(setup(1, 14, []).breakdown.loyalty <= 420, "loyalty bonus is capped");
+  setup(1, 10, []); ok(T.Legacy.archetype().name === "One-Club Legend", "long one-club -> One-Club Legend");
+  setup(6, 14, []); ok(T.Legacy.archetype().name === "Globetrotter", "many clubs -> Globetrotter");
+  setup(3, 14, []); ok(T.Legacy.archetype().name === "Journeyman", "a few clubs -> Journeyman");
+});
+
+// ============================================================
 // 8. Balance sanity — loose bounds so a blow-up fails CI
 // ============================================================
 group("balance", () => {

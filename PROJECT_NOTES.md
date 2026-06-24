@@ -371,6 +371,19 @@ promotion/relegation, and more player control over the season.
 - **Validate** with a headless career loop (see "Balance audit" above): assert each
   `game.league.divs[d].length === 20` and exactly one `"P"` every season.
 
+## Loyalty / journeyman legacy (v0.14.0)
+
+- `legacy.compute` adds a **`loyalty`** term from `totals.clubsPlayedFor`: a one-club
+  career earns `seasons × (loyal ? 16 : 7)`; a multi-club career earns `(clubs-1) ×
+  (mercenary ? 40 : 13)` (+ a small loyal-leaning bonus). Clamped to 420 so it stays a
+  flavour bonus (~2-5% of score), not a dominant term — **balance test still passes**.
+  This finally wires the previously-dead **`loyal`** perk (and gives `mercenary` a legacy
+  effect beyond transfer interest); their `T.PERKS` descriptions were already written for it.
+- `Legacy.archetype()` returns `{name, icon, blurb}` (One-Club Legend / One-Club Man /
+  Journeyman / Globetrotter / Settled Pro) from `clubsPlayedFor` + seasons; the retirement
+  screen shows it as a card with the club count + loyalty bonus. `breakdown` now includes
+  `loyalty` and `clubs`. Covered by the `loyalty` test group.
+
 ## Transfers (v0.10.0)
 
 - **Ladder entries are now heterogeneous.** `game.league.divs[d]` holds `"P"` (the
