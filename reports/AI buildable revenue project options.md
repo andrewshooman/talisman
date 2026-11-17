@@ -4,6 +4,11 @@
 
 ## Bottom line
 
+> **Update, same day:** the owner had played TALISMAN and found it not fun, with no real
+> football on screen. That outweighs the "keep TALISMAN" recommendation below, which rested on
+> it being already built, not on evidence it was enjoyable. The project moved to option 2 in
+> this report: a short, shareable daily football game (SET PIECE, in `setpiece/`).
+
 **Keep TALISMAN, but stop paying for new features until real players have tried it.** No category I looked at gives a solo builder with no audience good odds of revenue. What the AI can build is not the limit; getting people to show up is. TALISMAN is already built, costs nothing to host, and sits in the one niche where small sports games have twice broken out this decade without a marketing budget. The cheapest useful next step is a two-week demand test (about two short AI sessions), not more content.
 
 If the test fails, the best pivot is a **two-minute, shareable daily football game** built from TALISMAN's existing engine, not a switch to apps or SaaS.
