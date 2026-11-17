@@ -1,3 +1,14 @@
+# ⚽ SET PIECE — the daily free kick
+
+**The active project in this repo lives in [`setpiece/`](setpiece/).** Five free kicks a day,
+the same five for everyone. Swipe from the ball to draw its path, curl it round the wall and
+beat the keeper. Open `setpiece/index.html` in a browser, or `python -m http.server` and go to
+`/setpiece/`. See [PROGRESS.md](PROGRESS.md) for status and next steps.
+
+The career sim below (TALISMAN) is parked.
+
+---
+
 # ⚽ TALISMAN
 
 **A single-player football career RPG — live a striker's whole career, season by season.**

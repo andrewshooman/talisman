@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>SET PIECE — play counts</title>
+<style>
+  body { font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; background: #070b1a; color: #fff; margin: 0; padding: 20px; }
+  h1 { font-size: 20px; } p { opacity: 0.75; max-width: 60ch; }
+  table { border-collapse: collapse; margin-top: 12px; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.12); text-align: right; }
+  th:first-child, td:first-child { text-align: left; } th { opacity: 0.7; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>SET PIECE — play counts</h1>
+<p>Anonymous counters only: no cookies and no personal data. A dash means no plays were counted. Each device counts once a day as a visit.</p>
+<table id="t"><thead></thead><tbody></tbody></table>
+<p id="note"></p>
+<script>
+(async function () {
+  const NS = "setpiece-k7q2", BASE = "https://abacus.jasoncameron.dev/get/";
+  const KEYS = [["visit", "Devices that opened it"], ["new_player", "First-time players"], ["return_d1", "Came back next day"],
+    ["return_later", "Came back later"], ["daily_start", "Started the daily"], ["daily_done", "Finished the daily"],
+    ["share", "Tapped share"], ["practice_start", "Opened practice"]];
+  const days = [];
+  for (let i = 0; i < 7; i++) { const d = new Date(Date.now() - i * 86400000); days.push(d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()); }
+  const head = document.querySelector("#t thead"), body = document.querySelector("#t tbody");
+  head.innerHTML = "<tr><th>Count</th><th>All time</th>" + days.map((d) => `<th>${String(d).slice(4, 6)}/${String(d).slice(6)}</th>`).join("") + "</tr>";
+  const get = async (k) => { try { const r = await fetch(BASE + NS + "/" + k); if (!r.ok) return "–"; const j = await r.json(); return j.value == null ? "–" : j.value; } catch (e) { return "?"; } };
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  let failed = false;
+  for (const [key, label] of KEYS) {
+    const tr = document.createElement("tr"); tr.innerHTML = `<td>${label}</td>`; body.appendChild(tr);
+    for (const k of [key].concat(days.map((d) => key + "_" + d))) {
+      const v = await get(k); if (v === "?") failed = true;
+      const td = document.createElement("td"); td.textContent = v; tr.appendChild(td); await wait(120);
+    }
+  }
+  const goals = [];
+  for (let g = 0; g <= 5; g++) { goals.push(`${g} goals: ${await get("daily_goals_" + g)}`); await wait(120); }
+  document.getElementById("note").textContent = "Finished dailies by score — " + goals.join(" · ") + (failed ? " (a ? means the counter service could not be reached)" : "");
+})();
+</script>
+</body>
+</html>
