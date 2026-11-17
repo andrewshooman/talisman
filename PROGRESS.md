@@ -38,3 +38,19 @@ State file for the scheduled check-ins. Keep it short and current.
 - The counter service (abacus.jasoncameron.dev) and the live site could not be reached from the
   build session's network, so play counting is untested end to end. The game works without it.
 - Balance was tuned by simulation with assumed human aiming error, not by real players.
+
+## In progress (started 17 Nov, after first phone playtest)
+
+Owner feedback: keeper clips into the post; cannot get a free kick over the wall. New direction:
+**merge SET PIECE into TALISMAN** so a career's key moments are *played* in the 3D scene engine
+(a career RPG with playable match scenarios; original, not a clone of any existing game).
+
+Plan:
+1. `setpiece/core.js`: fix keeper clamp; add dip so shots can clear the wall; generalise the wall
+   into `blockers`; add scene kinds (penalty, shot under pressure, one-on-one, header, volley,
+   through-ball pass) and stat modifiers.
+2. `setpiece/engine.js`: embeddable renderer/input/audio (`SPE.play(scene, opts, onDone)`),
+   used by both the SET PIECE daily shell and TALISMAN.
+3. TALISMAN `UI.playMomentGame`: play the scene; the real outcome decides success
+   (`Moments.resolvePlayed`); player stats change scatter, power, curl, time on the ball.
+4. Tests for all of it; update docs; merge.
